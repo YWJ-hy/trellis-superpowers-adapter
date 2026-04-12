@@ -1,0 +1,53 @@
+{
+  "name": "trellis-superpowers-adapter",
+  "version": "1.8.0",
+  "description": "Pluggable Trellis overlay that vendors Superpowers-inspired workflow guidance locally, adds Trellis-native spec authoring commands, and patches start-command interop without replacing Trellis core.",
+  "compatibility": {
+    "minVersion": "0.4.0-beta.8",
+    "testedVersions": [
+      "0.4.0-beta.10"
+    ]
+  },
+  "snapshotMetadataFile": "snapshot.json",
+  "installedPaths": [
+    ".claude/commands/trellis-sp/brainstorm.md",
+    ".claude/commands/trellis-sp/specify.md",
+    ".claude/commands/trellis-sp/clarify.md",
+    ".claude/commands/trellis-sp/plan.md",
+    ".claude/commands/trellis-sp/execute.md",
+    ".claude/skills/trellis-sp-local/SKILL.md"
+  ],
+  "patchedPaths": [
+    ".claude/commands/trellis/start.md"
+  ],
+  "patchConfig": {
+    "startInterop": {
+      "path": ".claude/commands/trellis/start.md",
+      "markerStart": "<!-- trellis-superpowers-adapter:start-interop:start -->",
+      "markerEnd": "<!-- trellis-superpowers-adapter:start-interop:end -->"
+    }
+  },
+  "requiredSkills": [],
+  "conflictPolicy": {
+    "defaultMode": "fail",
+    "forceEnv": "ADAPTER_FORCE",
+    "backupEnv": "ADAPTER_BACKUP",
+    "backupOnForce": true,
+    "backupRoot": ".claude/adapter-backups/trellis-superpowers-adapter"
+  },
+  "lifecycleScripts": {
+    "bootstrap": "bootstrap.sh",
+    "install": "install.sh",
+    "uninstall": "uninstall.sh",
+    "verify": "verify.sh",
+    "restore": "restore.sh",
+    "listBackups": "list-backups.sh",
+    "status": "status.sh",
+    "pruneBackups": "prune-backups.sh",
+    "doctor": "doctor.sh",
+    "manage": "manage.sh",
+    "selfTest": "self-test.sh",
+    "exportManifest": "export-manifest.sh",
+    "releaseCheck": "release-check.sh"
+  }
+}
