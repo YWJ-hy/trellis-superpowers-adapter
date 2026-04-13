@@ -42,8 +42,54 @@ if grep -q 'Missing Trellis package metadata' <<< "$BOOTSTRAP_OUTPUT"; then
 fi
 
 grep -q "$START_MARKER" "$PROJECT_DIR/.claude/commands/trellis/start.md" || fail 'bootstrap did not patch start.md with adapter interop block'
+grep -q 'inspect the candidate task `task.json` and check `meta.trellis_sp.managed`' "$PROJECT_DIR/.claude/commands/trellis/start.md" || fail 'patched start.md did not include trellis_sp metadata resume routing'
+grep -q 'Current-task flow:' "$PROJECT_DIR/.claude/commands/trellis/start.md" || fail 'patched start.md did not document current-task resume routing'
+grep -q 'Manual-selection flow:' "$PROJECT_DIR/.claude/commands/trellis/start.md" || fail 'patched start.md did not document manual-selection resume routing'
+grep -q 'Managed child task:' "$PROJECT_DIR/.claude/commands/trellis/start.md" || fail 'patched start.md did not describe child-task adapter resume behavior'
+grep -q 'read its `prd.md` plus any task-local `info.md`' "$PROJECT_DIR/.claude/commands/trellis/start.md" || fail 'patched start.md did not describe parent-task resume context'
+grep -q 'read the child `prd.md` plus the parent `prd.md` and parent `info.md`' "$PROJECT_DIR/.claude/commands/trellis/start.md" || fail 'patched start.md did not describe child-task resume context'
+grep -q 'Child-task resume template:' "$PROJECT_DIR/.claude/commands/trellis/start.md" || fail 'patched start.md did not include child-task resume template'
+grep -q 'Parent-task resume template:' "$PROJECT_DIR/.claude/commands/trellis/start.md" || fail 'patched start.md did not include parent-task resume template'
 grep -q 'then usually `/trellis-sp:specify`' "$PROJECT_DIR/.claude/commands/trellis/start.md" || fail 'patched start.md did not recommend specify as the default next step after brainstorm'
 grep -q '`/trellis-sp:clarify` only if high-value ambiguities remain' "$PROJECT_DIR/.claude/commands/trellis/start.md" || fail 'patched start.md did not keep clarify conditional'
+[[ -f "$PROJECT_DIR/.claude/scripts/trellis-sp-task-meta.py" ]] || fail 'bootstrap did not install trellis-sp task metadata writer'
+python3 "$PROJECT_DIR/.claude/scripts/trellis-sp-task-meta.py" --repo-root "$PROJECT_DIR" ".trellis/tasks/04-14-parent" --role parent --phase plan >/dev/null 2>&1 && fail 'metadata writer unexpectedly succeeded for missing task'
+mkdir -p "$PROJECT_DIR/.trellis/tasks/04-14-parent" "$PROJECT_DIR/.trellis/tasks/04-14-child"
+cat > "$PROJECT_DIR/.trellis/tasks/04-14-parent/task.json" <<'EOF'
+{
+  "title": "Parent task",
+  "children": ["04-14-child"],
+  "meta": {}
+}
+EOF
+cat > "$PROJECT_DIR/.trellis/tasks/04-14-child/task.json" <<'EOF'
+{
+  "title": "Child task",
+  "parent": "04-14-parent",
+  "meta": {}
+}
+EOF
+python3 "$PROJECT_DIR/.claude/scripts/trellis-sp-task-meta.py" --repo-root "$PROJECT_DIR" ".trellis/tasks/04-14-parent" --role parent --phase plan >/dev/null || fail 'metadata writer failed for parent task fixture'
+python3 "$PROJECT_DIR/.claude/scripts/trellis-sp-task-meta.py" --repo-root "$PROJECT_DIR" ".trellis/tasks/04-14-child" --role child --phase execute >/dev/null || fail 'metadata writer failed for child task fixture'
+python3 - "$PROJECT_DIR/.trellis/tasks/04-14-parent/task.json" "$PROJECT_DIR/.trellis/tasks/04-14-child/task.json" <<'PY'
+import json
+import sys
+parent_path, child_path = sys.argv[1:3]
+parent = json.load(open(parent_path))
+child = json.load(open(child_path))
+parent_meta = parent.get('meta', {}).get('trellis_sp', {})
+child_meta = child.get('meta', {}).get('trellis_sp', {})
+assert parent_meta.get('managed') is True
+assert parent_meta.get('role') == 'parent'
+assert parent_meta.get('workflow_version') == 1
+assert parent_meta.get('last_phase') == 'plan'
+assert child_meta.get('managed') is True
+assert child_meta.get('role') == 'child'
+assert child_meta.get('workflow_version') == 1
+assert child_meta.get('last_phase') == 'execute'
+assert parent.get('children') == ['04-14-child']
+assert child.get('parent') == '04-14-parent'
+PY
 
 [[ ! -e "$PROJECT_DIR/packages/cli/package.json" ]] || fail 'test fixture unexpectedly contains packages/cli/package.json'
 

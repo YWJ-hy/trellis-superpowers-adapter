@@ -10,6 +10,7 @@ Use a local planning discipline adapted from Superpowers, but keep Trellis task 
 ## Non-negotiable rules
 
 - Treat the active Trellis task as the source of truth for requirements and implementation context.
+- Keep the active parent task identifiable in `task.json` under `meta.trellis_sp`; ensure `managed=true`, `role="parent"`, `workflow_version=1`, and keep `last_phase` aligned with the latest adapter step.
 - Treat the active task `prd.md` as the requirements contract, including any structure added by `/trellis-sp:specify` or `/trellis-sp:clarify`.
 - Formal research in this command must use the Trellis research agent with explicit `subagent_type: "research"`.
 - Write the task-level implementation contract into the active task, not into `docs/superpowers/plans/...` or any other external planning workspace.
@@ -52,6 +53,10 @@ Apply a local planning discipline adapted from Superpowers while following the T
    - create or define child tasks with the existing parent/child task mechanism under `.trellis/tasks/`
    - keep the parent task as `.trellis/.current-task` throughout planning, even while creating or editing child tasks
    - do not leave a newly created child task as the current task at the end of planning
+   - ensure the parent task still has `meta.trellis_sp.managed=true`, `role="parent"`, `workflow_version=1`, and advance its `last_phase` to `plan` or `execute` as planning matures
+   - immediately run `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase plan` while planning is active, and run `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase execute` once the parent is ready to hand off to execution
+   - whenever you create or refine an atomic child task for this adapter flow, mark that child task in `task.json` under `meta.trellis_sp` with `managed=true`, `role="child"`, `workflow_version=1`, and `last_phase="execute"`
+   - immediately run `python3 .claude/scripts/trellis-sp-task-meta.py <child-task-dir> --role child --phase execute` for every child task you create or refine in this adapter flow
    - prefer one child task per independent verification unit, file cluster, or review checkpoint
    - avoid splitting trivial work that belongs in the same implementation and verification pass
 7. For each atomic child task, prepare a Trellis-native execution contract:

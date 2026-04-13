@@ -63,9 +63,10 @@ if [[ "$DRY_RUN" == "1" ]]; then
     printf '[dry-run] Would remove %s\n' "$TARGET_DIR/$relative_path"
   done <<< "$INSTALLED_FILES"
   printf '[dry-run] Would remove managed interop block from %s if present\n' "$START_FILE"
-  printf '[dry-run] Would try to remove empty directories %s and %s\n' \
+  printf '[dry-run] Would try to remove empty directories %s, %s, and %s\n' \
     "$TARGET_DIR/.claude/commands/trellis-sp" \
-    "$TARGET_DIR/.claude/skills/trellis-sp-local"
+    "$TARGET_DIR/.claude/skills/trellis-sp-local" \
+    "$TARGET_DIR/.claude/scripts"
   exit 0
 fi
 
@@ -78,6 +79,7 @@ remove_start_interop_block "$START_FILE"
 
 rmdir "$TARGET_DIR/.claude/commands/trellis-sp" 2>/dev/null || true
 rmdir "$TARGET_DIR/.claude/skills/trellis-sp-local" 2>/dev/null || true
+rmdir "$TARGET_DIR/.claude/scripts" 2>/dev/null || true
 
 printf 'Removed Trellis-Superpowers adapter from %s\n' "$TARGET_DIR"
 printf 'Removed start command interop block from %s (if present)\n' "$START_FILE"

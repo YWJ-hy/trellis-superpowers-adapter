@@ -140,7 +140,11 @@ Current-task rules in this adapter flow:
 
 - `/trellis:start` is still the recommended session entrypoint, but the adapter commands must manage Trellis task state correctly even when they are invoked directly.
 - `/trellis-sp:brainstorm` should ensure there is a parent task and set `.trellis/.current-task` to that parent before handing off to `/trellis-sp:specify`.
+- `/trellis-sp:brainstorm` should immediately run `python3 .claude/scripts/trellis-sp-task-meta.py <task-dir> --role parent --phase brainstorm` when a parent task is created or when the adapter marker is missing or stale.
+- `/trellis-sp:specify` should immediately run `python3 .claude/scripts/trellis-sp-task-meta.py <task-dir> --role parent --phase specify` before finishing so the active parent task remains adapter-identifiable.
 - `/trellis-sp:plan` should keep the parent task as the current task while creating or updating child tasks.
+- `/trellis-sp:plan` should immediately run `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase plan` while planning is active, then run `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase execute` once the parent is ready for execution handoff.
+- `/trellis-sp:plan` should immediately run `python3 .claude/scripts/trellis-sp-task-meta.py <child-task-dir> --role child --phase execute` for every child task it creates or refines.
 - `/trellis-sp:execute` should switch `.trellis/.current-task` to each child task before running child-local `implement` / `check` / `debug`, then restore the parent task before the final parent-level `check`.
 
 For already-clear requirements, a shorter path is usually enough:
@@ -156,8 +160,10 @@ For already-clear requirements, a shorter path is usually enough:
 
 - Treat the target project's active task `prd.md` as the single source of truth for task-level feature specs.
 - `/trellis-sp:brainstorm` uses a Trellis-native flow adapted from Superpowers, keeps all requirements in the Trellis task PRD, and should ensure the parent task is the active current task before `/trellis-sp:specify`.
+- `/trellis-sp:brainstorm`, `/trellis-sp:specify`, and `/trellis-sp:plan` are also responsible for keeping `task.json.meta.trellis_sp` fresh through `.claude/scripts/trellis-sp-task-meta.py`, so parent and child tasks stay recognizable across sessions.
 - `/trellis-sp:plan` decomposes broad planning-ready work into atomic child tasks when needed, then prepares task-local execution contracts in parent/child `info.md` and task jsonl files instead of creating external Superpowers plan artifacts. Planning keeps the parent task as `.trellis/.current-task`.
 - `/trellis-sp:execute` uses local execution discipline adapted from Superpowers, runs those child tasks progressively, and routes real work through Trellis-compatible `research` / `implement` / `check` / `debug` subagents so hook-based progressive disclosure and Ralph Loop can apply again. Child execution should temporarily switch `.trellis/.current-task` to the child task, then restore the parent before the final parent-level `check`.
+- `/trellis:start` should inspect `task.json.meta.trellis_sp` during both current-task resume and manual task selection. Managed parent tasks should resume from parent `prd.md` plus any task-local `info.md`; managed child tasks should resume from child `prd.md` plus the parent `prd.md` and parent `info.md`, then finish the active child loop before returning to the parent final `check`.
 - The adapter intentionally does **not** hand execution over to the Trellis `dispatch` agent today. This keeps the adapter limited to a lightweight execution bridge instead of coupling it to the full Trellis phase-orchestration pipeline (`task.json.next_action`, finish/create-pr semantics, and deeper dispatch assumptions). The current design preserves Trellis hook/context benefits without forcing adapter users into the complete dispatch lifecycle.
 - Do not expect this adapter to create `specs/` or `.specify/` state.
 - If install detects drift in adapter-managed files, it refuses to overwrite by default.
@@ -329,6 +335,17 @@ You can combine dry-run with force settings to preview conflict handling.
 - Recoverable from backup snapshots created during forced replacement
 
 ## Metadata
+
+Runtime task identity for this adapter lives in `task.json.meta.trellis_sp`.
+
+Expected fields:
+
+- `managed` — whether the task is adapter-managed
+- `role` — `parent` or `child`
+- `workflow_version` — current metadata schema version
+- `last_phase` — latest adapter phase such as `brainstorm`, `specify`, `plan`, or `execute`
+
+The adapter installs `.claude/scripts/trellis-sp-task-meta.py` to write and refresh these fields without changing Trellis core scripts.
 
 See `adapter.json` for the adapter version, compatibility data, installed paths, snapshot metadata filename, conflict policy, lifecycle scripts, and the explicit no-runtime-skill dependency contract.
 

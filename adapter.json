@@ -15,7 +15,8 @@
     ".claude/commands/trellis-sp/clarify.md",
     ".claude/commands/trellis-sp/plan.md",
     ".claude/commands/trellis-sp/execute.md",
-    ".claude/skills/trellis-sp-local/SKILL.md"
+    ".claude/skills/trellis-sp-local/SKILL.md",
+    ".claude/scripts/trellis-sp-task-meta.py"
   ],
   "patchedPaths": [
     ".claude/commands/trellis/start.md"

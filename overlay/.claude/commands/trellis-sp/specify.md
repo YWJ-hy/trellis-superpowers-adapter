@@ -12,6 +12,7 @@ This command is adapted from spec-kit's `specify` workflow and spec template str
 ## Non-negotiable rules
 
 - Require an active Trellis task. If no task is active, stop and tell the user to create or start one with Trellis first.
+- When `/trellis-sp:specify` is used, the active parent task must remain identifiable in `task.json` under `meta.trellis_sp`; ensure `managed=true`, `role="parent"`, `workflow_version=1`, and `last_phase="specify"` before finishing.
 - Treat the active task's `prd.md` as the only persistent artifact for this command.
 - Do not create any parallel spec workspace, external feature directory, or command state outside `.trellis/tasks/`.
 - Do not modify `.claude/settings.json`, Trellis hooks, or built-in `trellis/*` commands as part of this command.
@@ -66,6 +67,8 @@ Omit `### Key Entities` if the work does not involve meaningful data concepts.
 ## Workflow
 
 1. Resolve the active Trellis task and open or create its `prd.md`.
+   - ensure the active parent task remains marked in `task.json` under `meta.trellis_sp` with `managed=true`, `role="parent"`, `workflow_version=1`, and `last_phase="specify"`
+   - immediately run `python3 .claude/scripts/trellis-sp-task-meta.py <task-dir> --role parent --phase specify` before finishing this command so the active parent task stays adapter-identifiable
 2. Parse the feature description, task title, and current PRD content.
    - Extract actors, actions, constraints, success signals, data concepts, and likely scope boundaries.
 3. Preserve useful existing content.

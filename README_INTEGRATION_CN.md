@@ -121,7 +121,11 @@
 
 - `/trellis:start` 仍然是推荐入口，但 adapter 命令即使被直接调用，也必须自己把 Trellis task 状态处理正确。
 - `/trellis-sp:brainstorm` 应保证存在 parent task，并在进入 `/trellis-sp:specify` 前把 `.trellis/.current-task` 设为 parent task。
+- `/trellis-sp:brainstorm` 在创建 parent task 或发现 adapter 标记缺失/过期时，应立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <task-dir> --role parent --phase brainstorm`。
+- `/trellis-sp:specify` 在结束前，应立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <task-dir> --role parent --phase specify`，保证 active parent task 仍能被识别为 adapter-managed task。
 - `/trellis-sp:plan` 在创建或更新 child tasks 时，`.trellis/.current-task` 仍应保持指向 parent task。
+- `/trellis-sp:plan` 在 planning 进行时，应立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase plan`；当 parent 准备好进入 execution handoff 时，再执行 `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase execute`。
+- `/trellis-sp:plan` 对每个新建或更新的 child task，都应立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <child-task-dir> --role child --phase execute`。
 - `/trellis-sp:execute` 在执行每个 child task 前，应先把 `.trellis/.current-task` 切到该 child；所有 child 完成后，再切回 parent task 做最终 parent-level `check`。
 
 ### 场景 B：需求已经比较清楚
@@ -145,8 +149,10 @@
 
 - task-level feature spec 的唯一事实来源是 active task `prd.md`
 - `/trellis-sp:brainstorm` 在本地应用受 Superpowers 启发的 brainstorming discipline，但所有需求仍落回 Trellis task PRD；如果原本没有 active task，它还应先创建并激活 parent task，避免后续 `/trellis-sp:specify` 看见 `CURRENT TASK = (none)`
+- `/trellis-sp:brainstorm`、`/trellis-sp:specify`、`/trellis-sp:plan` 还负责通过 `.claude/scripts/trellis-sp-task-meta.py` 持续刷新 `task.json.meta.trellis_sp`，让 parent/child task 在跨 session 时仍能被识别。
 - `/trellis-sp:plan` 必须在需要 staged delivery 时把大任务拆成原子子任务，并把 implementation contract 收敛到 parent/child task-local `info.md` 与 jsonl context files，而不是写入外部 plan artifact；planning 期间 current task 应保持为 parent task
 - `/trellis-sp:execute` 必须按子任务顺序渐进推进，并通过 Trellis-compatible `research` / `implement` / `check` / `debug` subagent 路由真实工作；执行每个 child task 前应切到该 child，全部 child 完成后再切回 parent 做最终 `check`
+- `/trellis:start` 在 current-task resume 和 manual-selection 两种入口下，都应读取 `task.json.meta.trellis_sp` 再决定走 adapter flow 还是原生 Trellis flow：parent task 恢复时先读 parent `prd.md` 与 `info.md`；child task 恢复时先读 child `prd.md`，再读 parent `prd.md` 与 parent `info.md`，并先完成当前 child loop，再回到 parent final `check`。
 - 当前 adapter **不会**把执行阶段直接交给 Trellis `dispatch` agent。这样做是有意为之：adapter 现在只做轻量执行桥接，不想过早耦合到完整的 Trellis phase orchestration（例如 `task.json.next_action`、finish/create-pr 语义以及更深的 dispatch 假设）。目前这套设计已经能继承 Trellis 的 hook/context 注入优势，同时保持 adapter 边界清晰。
 - `research` 不是每次强制执行：context 足够时可跳过，context 缺失时必须补齐
 - Ralph Loop 只有在执行路径真正落到 Trellis `check` subagent 时才会重新生效，因此最终验证必须显式回到 Trellis `check`
@@ -241,6 +247,19 @@
 ```bash
 ./manage.sh restore /path/to/your/trellis-project <snapshot-name>
 ```
+
+### task 元数据
+
+adapter 运行时用于识别任务类型的标记放在 `task.json.meta.trellis_sp` 中。
+
+建议字段：
+
+- `managed`：是否为 adapter 管理任务
+- `role`：`parent` 或 `child`
+- `workflow_version`：当前 metadata 版本
+- `last_phase`：最近一次 adapter 阶段，如 `brainstorm`、`specify`、`plan`、`execute`
+
+adapter 会安装 `.claude/scripts/trellis-sp-task-meta.py`，用于在不修改 Trellis core script 的前提下写入并刷新这些字段。
 
 ### 清理旧快照
 

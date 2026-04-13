@@ -31,6 +31,7 @@ REQUIRED_OVERLAY_FILES=(
   ".claude/commands/trellis-sp/plan.md"
   ".claude/commands/trellis-sp/execute.md"
   ".claude/skills/trellis-sp-local/SKILL.md"
+  ".claude/scripts/trellis-sp-task-meta.py"
 )
 
 create_snapshot_metadata() {
@@ -230,7 +231,8 @@ fi
 
 mkdir -p \
   "$TARGET_DIR/.claude/commands/trellis-sp" \
-  "$TARGET_DIR/.claude/skills/trellis-sp-local"
+  "$TARGET_DIR/.claude/skills/trellis-sp-local" \
+  "$TARGET_DIR/.claude/scripts"
 
 if [[ ${#CONFLICT_FILES[@]} -gt 0 && "$FORCE" == "1" && "$BACKUP" == "1" ]]; then
   for relative_path in "${CONFLICT_FILES[@]}"; do
