@@ -150,6 +150,8 @@ Current-task rules in this adapter flow:
 - `/trellis-sp:execute` should switch `.trellis/.current-task` to each child task before running child-local `implement` / `check` / `debug`, then restore the parent task before the final parent-level `check`.
 - `/trellis:finish-work` remains the Trellis-native finish and handoff step. In the adapter lane, it should only happen after `/trellis-sp:execute` restores the parent task and the parent-level final `check` has passed cleanly.
 - Child tasks are staged execution units only; do not treat any child task as independently ready for `/trellis:finish-work`.
+- Before handing off to `/trellis:finish-work`, evaluate whether the workflow surfaced reusable rules, constraints, or debugging lessons that should be promoted via `/trellis:update-spec`.
+- After `/trellis:finish-work`, use `/trellis:record-session` when the staged execution produced durable decisions or review findings that should survive into later sessions.
 
 For already-clear requirements, a shorter path is usually enough:
 

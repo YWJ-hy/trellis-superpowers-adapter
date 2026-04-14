@@ -131,6 +131,8 @@
 - `/trellis-sp:execute` 在执行每个 child task 前，应先把 `.trellis/.current-task` 切到该 child；所有 child 完成后，再切回 parent task 做最终 parent-level `check`。
 - `/trellis:finish-work` 仍然是 Trellis 原生的 finish / handoff 节点；在 adapter lane 里，只能在 `/trellis-sp:execute` 恢复 parent task 并完成 parent-level final `check` 之后进入。
 - child task 只是 staged execution unit，不能单独视为 ready-for-finish-work。
+- 在 handoff 到 `/trellis:finish-work` 之前，应明确判断这次流程是否暴露了值得通过 `/trellis:update-spec` 沉淀的通用规则、约束或调试经验。
+- 在 `/trellis:finish-work` 之后，如果 staged execution 形成了值得跨 session 保留的决策或 review 结论，应继续走 `/trellis:record-session`。
 
 ### 场景 B：需求已经比较清楚
 

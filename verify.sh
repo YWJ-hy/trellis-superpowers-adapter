@@ -181,6 +181,8 @@ assert_contains "$EXECUTE_FILE" 'parent-level final `check`' 'execute parent fin
 assert_contains "$EXECUTE_FILE" 'do not treat any child task as individually ready for `/trellis:finish-work`' 'execute no child finish-work rule'
 assert_contains "$EXECUTE_FILE" 'only the parent task may hand off to `/trellis:finish-work`' 'execute parent-only finish-work rule'
 assert_contains "$EXECUTE_FILE" 'that handoff happens only after the parent-level final `check` passes cleanly' 'execute finish-work gate rule'
+assert_contains "$EXECUTE_FILE" 'should be promoted via `/trellis:update-spec`' 'execute update-spec knowledge gate'
+assert_contains "$EXECUTE_FILE" 'recommend `/trellis:record-session` after finish-work' 'execute record-session knowledge gate'
 assert_contains "$EXECUTE_FILE" 'Recommended execution checklist' 'execute checklist section'
 assert_contains "$EXECUTE_FILE" 'child task `prd.md` is still accurate' 'execute child readiness checklist'
 assert_contains "$EXECUTE_FILE" 'every ordered child task completed' 'execute final workflow checklist'
@@ -195,6 +197,8 @@ assert_contains "$SKILL_FILE" 'use `/trellis-sp:plan` when the task is already p
 assert_contains "$SKILL_FILE" 'creates a Trellis-native atomic child-task workflow' 'skill atomic plan workflow'
 assert_contains "$SKILL_FILE" 'runs those atomic child tasks progressively' 'skill atomic execute workflow'
 assert_contains "$SKILL_FILE" 'route real implementation/review work through Trellis-compatible subagents' 'skill Trellis subagent routing'
+assert_contains "$SKILL_FILE" 'promoted via `/trellis:update-spec`' 'skill update-spec knowledge gate'
+assert_contains "$SKILL_FILE" 'use `/trellis:record-session`' 'skill record-session knowledge gate'
 
 assert_not_regex_in_files 'superpowers:|install or enable the Superpowers plugin|install Superpowers|enable Superpowers plugin' 'Superpowers runtime dependency language' "${RUNTIME_FILES[@]}"
 assert_not_regex "$BRAINSTORM_FILE" 'write design doc|docs/superpowers/specs/YYYY-MM-DD|docs/superpowers/plans/YYYY-MM-DD' 'raw Superpowers external artifact behavior'
@@ -230,13 +234,19 @@ assert_contains "$README_FILE" 'Current-task rules in this adapter flow:' 'READM
 assert_contains "$README_FILE" 'set `.trellis/.current-task` to that parent before handing off to `/trellis-sp:specify`' 'README brainstorm parent activation'
 assert_contains "$README_FILE" 'keep the parent task as the current task while creating or updating child tasks' 'README plan keeps parent current'
 assert_contains "$README_FILE" 'switch `.trellis/.current-task` to each child task before running child-local `implement` / `check` / `debug`' 'README execute child current-task switch'
+assert_contains "$README_FILE" 'promoted via `/trellis:update-spec`' 'README update-spec knowledge gate'
+assert_contains "$README_FILE" 'use `/trellis:record-session`' 'README record-session knowledge gate'
 assert_contains "$README_INTEGRATION_CN_FILE" 'current task 规则需要明确理解' 'README CN current-task rules section'
 assert_contains "$README_INTEGRATION_CN_FILE" '把 `.trellis/.current-task` 设为 parent task' 'README CN brainstorm parent activation'
 assert_contains "$README_INTEGRATION_CN_FILE" '`.trellis/.current-task` 仍应保持指向 parent task' 'README CN plan keeps parent current'
 assert_contains "$README_INTEGRATION_CN_FILE" '先把 `.trellis/.current-task` 切到该 child' 'README CN execute child current-task switch'
+assert_contains "$README_INTEGRATION_CN_FILE" '通过 `/trellis:update-spec` 沉淀' 'README CN update-spec knowledge gate'
+assert_contains "$README_INTEGRATION_CN_FILE" '继续走 `/trellis:record-session`' 'README CN record-session knowledge gate'
 assert_contains "$INTEGRATION_CN_FILE" '应确保 parent task 被设为 current task' 'integration doc brainstorm parent current-task'
 assert_contains "$INTEGRATION_CN_FILE" 'planning 期间 current task 仍保持 parent' 'integration doc plan keeps parent current'
 assert_contains "$INTEGRATION_CN_FILE" '执行 child 时切到 child，最终校验前再切回 parent' 'integration doc execute current-task switching'
+assert_contains "$INTEGRATION_CN_FILE" '通过 `/trellis:update-spec` 回灌' 'integration doc update-spec knowledge gate'
+assert_contains "$INTEGRATION_CN_FILE" '通过 `/trellis:record-session` 保存' 'integration doc record-session knowledge gate'
 
 printf 'Adapter verification passed for %s\n' "$TARGET_DIR"
 printf 'Detected Trellis version: %s\n' "$TRELLIS_VERSION"

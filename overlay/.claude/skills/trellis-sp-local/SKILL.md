@@ -41,6 +41,8 @@ Once the adapter path is chosen:
 - treat formal research in this flow as Trellis research, explicitly routed with `subagent_type: "research"`
 - treat `/trellis:finish-work` as a Trellis-native parent-level handoff that happens only after `/trellis-sp:execute` restores the parent task and the parent-level final `check` passes cleanly
 - do not treat child tasks as independently ready for `/trellis:finish-work`
+- before that handoff, evaluate whether the adapter lane discovered reusable project-wide rules that should be promoted via `/trellis:update-spec`
+- after finish-work, use `/trellis:record-session` when the workflow produced durable staged-execution or review knowledge worth preserving across sessions
 
 ## Installed commands
 

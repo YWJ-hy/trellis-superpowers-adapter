@@ -219,6 +219,8 @@ flowchart TD
 - `trellis-sp:execute` 按原子子任务增强执行节点，但真实工作仍回到 Trellis-compatible subagent；执行 child 时切到 child，最终校验前再切回 parent
 - `trellis:check`、`finish-work`、`record-session` 继续构成 Trellis 原生闭环，其中 `finish-work` 只能在 parent-level final `check` 之后触发
 - child task 只是 staged execution unit，不应被单独视为 ready-for-finish-work；只有 parent task 才能进入 Trellis-native finish handoff
+- handoff 到 `finish-work` 之前，应显式判断是否需要通过 `/trellis:update-spec` 回灌这次流程中发现的通用规则、约束或调试经验
+- `finish-work` 之后，如果这次 staged execution 形成了值得跨 session 复用的结论，应继续通过 `/trellis:record-session` 保存
 
 所以它表达的是：
 
