@@ -117,6 +117,8 @@
 
 在 `/trellis-sp:brainstorm` 之后，默认下一步是 `/trellis-sp:specify`。只有在仍然存在高价值歧义时才进入 `/trellis-sp:clarify`；否则当 PRD 已经达到 planning-ready 时，直接继续到 `/trellis-sp:plan`。
 
+这条 adapter lane **不会**替代原生 `/trellis:brainstorm`；它是一条从 `/trellis-sp:brainstorm` 显式进入的增强路径。一旦进入 adapter lane，就不要再把用户重定向回原生 brainstorm。
+
 这条 adapter 流程里的 current task 规则需要明确理解：
 
 - `/trellis:start` 仍然是推荐入口，但 adapter 命令即使被直接调用，也必须自己把 Trellis task 状态处理正确。
@@ -127,6 +129,8 @@
 - `/trellis-sp:plan` 在 planning 进行时，应立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase plan`；当 parent 准备好进入 execution handoff 时，再执行 `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase execute`。
 - `/trellis-sp:plan` 对每个新建或更新的 child task，都应立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <child-task-dir> --role child --phase execute`。
 - `/trellis-sp:execute` 在执行每个 child task 前，应先把 `.trellis/.current-task` 切到该 child；所有 child 完成后，再切回 parent task 做最终 parent-level `check`。
+- `/trellis:finish-work` 仍然是 Trellis 原生的 finish / handoff 节点；在 adapter lane 里，只能在 `/trellis-sp:execute` 恢复 parent task 并完成 parent-level final `check` 之后进入。
+- child task 只是 staged execution unit，不能单独视为 ready-for-finish-work。
 
 ### 场景 B：需求已经比较清楚
 

@@ -136,6 +136,8 @@ In Claude Code within that project, the added workflow is:
 
 After `/trellis-sp:brainstorm`, the default next step is `/trellis-sp:specify`. Use `/trellis-sp:clarify` only when high-value ambiguities remain; otherwise continue to `/trellis-sp:plan` once the PRD is planning-ready.
 
+This adapter lane does **not** replace native `/trellis:brainstorm`; it is an explicit enhancement path entered through `/trellis-sp:brainstorm`. Once that adapter path is chosen, do not route the user back to native brainstorm.
+
 Current-task rules in this adapter flow:
 
 - `/trellis:start` is still the recommended session entrypoint, but the adapter commands must manage Trellis task state correctly even when they are invoked directly.
@@ -146,6 +148,8 @@ Current-task rules in this adapter flow:
 - `/trellis-sp:plan` should immediately run `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase plan` while planning is active, then run `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase execute` once the parent is ready for execution handoff.
 - `/trellis-sp:plan` should immediately run `python3 .claude/scripts/trellis-sp-task-meta.py <child-task-dir> --role child --phase execute` for every child task it creates or refines.
 - `/trellis-sp:execute` should switch `.trellis/.current-task` to each child task before running child-local `implement` / `check` / `debug`, then restore the parent task before the final parent-level `check`.
+- `/trellis:finish-work` remains the Trellis-native finish and handoff step. In the adapter lane, it should only happen after `/trellis-sp:execute` restores the parent task and the parent-level final `check` has passed cleanly.
+- Child tasks are staged execution units only; do not treat any child task as independently ready for `/trellis:finish-work`.
 
 For already-clear requirements, a shorter path is usually enough:
 

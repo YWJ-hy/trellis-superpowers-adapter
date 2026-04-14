@@ -79,7 +79,11 @@ Apply a local planning discipline adapted from Superpowers while following the T
    - no default external plan files
    - no required worktree setup unless the user explicitly asks
    - no automatic commit-oriented plan steps as the task contract
-11. End by stating that `/trellis-sp:execute` should run the atomic child-task workflow progressively through Trellis-compatible subagents and review checkpoints.
+11. Parent-level finish bridge rules:
+   - child tasks are execution units, not finish units
+   - `/trellis:finish-work` belongs only after `/trellis-sp:execute` restores the parent task and the parent-level final `check` passes cleanly
+   - do not describe any child task as ready for `/trellis:finish-work` on its own
+12. End by stating that `/trellis-sp:execute` should run the atomic child-task workflow progressively through Trellis-compatible subagents and review checkpoints, then hand off to `/trellis:finish-work` only after the parent-level final `check` is clean.
 
 ## Planning outputs
 

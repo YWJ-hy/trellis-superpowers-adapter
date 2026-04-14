@@ -1,7 +1,7 @@
 {
   "name": "trellis-superpowers-adapter",
-  "version": "1.8.0",
-  "description": "Pluggable Trellis overlay that vendors Superpowers-inspired workflow guidance locally, adds Trellis-native spec authoring commands, and patches start-command interop without replacing Trellis core.",
+  "version": "1.9.0",
+  "description": "Pluggable Trellis overlay that vendors Superpowers-inspired workflow guidance locally, adds Trellis-native spec authoring commands, and clarifies adapter-lane start-to-finish bridge semantics without replacing Trellis core.",
   "compatibility": {
     "minVersion": "0.4.0-beta.8",
     "testedVersions": [

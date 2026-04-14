@@ -211,12 +211,14 @@ flowchart TD
 ### 5.3 如何理解这张图
 
 - `trellis:start` 仍然是总入口
+- 原生 `trellis:brainstorm` 仍然保留；adapter lane 只是在选择 `/trellis-sp:brainstorm` 后进入的增强路径，不替代 Trellis 原生 brainstorm
 - `trellis-sp:brainstorm` 增强需求澄清节点，并应确保 parent task 被设为 current task，避免下一步 `specify` 丢失上下文
 - `trellis-sp:specify` 增强任务规格整理节点
 - `trellis-sp:clarify` 增强歧义收敛节点
 - `trellis-sp:plan` 在需要 staged delivery 时把计划拆成原子子任务，并收敛成 parent/child task-local execution contract；planning 期间 current task 仍保持 parent
 - `trellis-sp:execute` 按原子子任务增强执行节点，但真实工作仍回到 Trellis-compatible subagent；执行 child 时切到 child，最终校验前再切回 parent
-- `trellis:check`、`finish-work`、`record-session` 继续构成 Trellis 原生闭环
+- `trellis:check`、`finish-work`、`record-session` 继续构成 Trellis 原生闭环，其中 `finish-work` 只能在 parent-level final `check` 之后触发
+- child task 只是 staged execution unit，不应被单独视为 ready-for-finish-work；只有 parent task 才能进入 Trellis-native finish handoff
 
 所以它表达的是：
 

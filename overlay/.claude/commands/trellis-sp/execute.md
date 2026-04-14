@@ -61,10 +61,15 @@ Preserve disciplined staged execution while routing all substantive work through
    - This is required so Trellis `SubagentStop(check)` behavior, including Ralph Loop, can apply to this route again.
    - After all atomic child tasks complete, restore `.trellis/.current-task` to the parent task and then run a parent-level final `check` for cross-child integration and overall requirements coverage.
    - If a finish-like final pass is needed, use Trellis `check` semantics rather than introducing an external finishing flow.
-9. End by reporting:
+9. Finish bridge rules:
+   - do not treat any child task as individually ready for `/trellis:finish-work`
+   - only the parent task may hand off to `/trellis:finish-work`
+   - that handoff happens only after the parent-level final `check` passes cleanly
+10. End by reporting:
    - which atomic child tasks completed
    - whether any blockers remain
    - whether the parent-level final `check` passed
+   - whether the workflow is ready to hand off to `/trellis:finish-work`
    - the next Trellis-native step, usually `/trellis:finish-work` or task follow-up work
 
 ## Recommended execution checklist

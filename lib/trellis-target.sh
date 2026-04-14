@@ -88,6 +88,8 @@ render_start_interop_block() {
   printf '%s\n' '    - this step should decompose broad work into atomic child tasks when staged delivery is needed'
   printf '%s\n' '  - `/trellis-sp:execute`'
   printf '%s\n' '    - this step should execute those child tasks progressively with Trellis review checkpoints'
+  printf '%s\n' '  - after `/trellis-sp:execute`, restore the parent task and require a clean parent-level final `check` before handing off to `/trellis:finish-work`'
+  printf '%s\n' '- Do not treat child tasks as independently ready for `/trellis:finish-work`; finish-work belongs to the parent task only.'
   printf '%s\n' '- In this adapter flow, formal research must use the Trellis research agent with explicit `subagent_type: "research"`.'
   printf '%s\n' "$START_INTEROP_MARKER_END"
 }

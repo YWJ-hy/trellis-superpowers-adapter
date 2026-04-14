@@ -13,6 +13,7 @@ This command is adapted from spec-kit's `clarify` workflow, but applies clarific
 
 - Require an active Trellis task with an existing `prd.md`. If the PRD does not exist or is too thin to clarify, stop and tell the user to run `/trellis-sp:specify` or expand the task first.
 - Treat the active task's `prd.md` as the only persistent artifact for this command.
+- Keep the active parent task identifiable in `task.json` under `meta.trellis_sp`; ensure `managed=true`, `role="parent"`, `workflow_version=1`, and `last_phase="clarify"` before finishing.
 - Do not create any parallel spec workspace, external feature directory, or command state outside `.trellis/tasks/`.
 - Do not modify `.claude/settings.json`, Trellis hooks, or built-in `trellis/*` commands as part of this command.
 
@@ -83,6 +84,8 @@ Scan the active task `prd.md` across these categories and mark each one internal
 ## Workflow
 
 1. Resolve the active Trellis task and read its `prd.md` once at the start.
+   - ensure the active parent task remains marked in `task.json` under `meta.trellis_sp` with `managed=true`, `role="parent"`, `workflow_version=1`, and `last_phase="clarify"`
+   - immediately run `python3 .claude/scripts/trellis-sp-task-meta.py <task-dir> --role parent --phase clarify` before finishing this command so the active parent task stays adapter-identifiable
 2. Perform the ambiguity scan taxonomy above.
 3. Build an internal queue of candidate clarification questions.
    - ask only questions whose answers materially affect architecture, implementation, testing, UX behavior, operational readiness, or validation
@@ -128,6 +131,10 @@ Scan the active task `prd.md` across these categories and mark each one internal
    - sections changed
    - a compact coverage summary using Clear / Resolved / Deferred / Outstanding
    - the next Trellis-native step, usually `/trellis-sp:plan`
+14. Adapter path handoff rules:
+   - `/trellis-sp:clarify` stays inside the adapter lane and should not send the user back to `/trellis:brainstorm`
+   - when clarification resolves the remaining high-value ambiguities, the default next step is `/trellis-sp:plan`
+   - do not suggest `/trellis:finish-work` from this command; finish belongs to the parent task after `/trellis-sp:execute` restores the parent and the parent-level final `check` passes cleanly
 
 ## Writing guidance
 

@@ -39,6 +39,8 @@ Once the adapter path is chosen:
 - continue to `/trellis-sp:execute` after planning is complete
 - treat `/trellis-sp:execute` as the step that runs those atomic child tasks progressively through Trellis-compatible subagents and review checkpoints
 - treat formal research in this flow as Trellis research, explicitly routed with `subagent_type: "research"`
+- treat `/trellis:finish-work` as a Trellis-native parent-level handoff that happens only after `/trellis-sp:execute` restores the parent task and the parent-level final `check` passes cleanly
+- do not treat child tasks as independently ready for `/trellis:finish-work`
 
 ## Installed commands
 

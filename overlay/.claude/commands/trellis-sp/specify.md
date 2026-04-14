@@ -135,6 +135,12 @@ Omit `### Key Entities` if the work does not involve meaningful data concepts.
    - whether the PRD is ready for planning
    - whether any ambiguity remains
    - the next Trellis-native step: `/trellis-sp:clarify` or `/trellis-sp:plan`
+15. Adapter path handoff rules:
+   - `/trellis-sp:specify` is part of the adapter lane entered from `/trellis-sp:brainstorm` or called directly on an already-active parent task
+   - do not redirect the user back to `/trellis:brainstorm` once the adapter path is active
+   - if high-value ambiguities remain, hand off to `/trellis-sp:clarify`
+   - if the PRD is planning-ready, hand off to `/trellis-sp:plan`
+   - do not suggest `/trellis:finish-work` from this command; finish happens only after execution completes, the parent task is restored, and the parent-level final `check` is clean
 
 ## Writing guidance
 
