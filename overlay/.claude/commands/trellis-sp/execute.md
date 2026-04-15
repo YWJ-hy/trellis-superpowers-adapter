@@ -13,6 +13,8 @@ Use a local execution discipline adapted from Superpowers, but keep Trellis as t
 - Treat `.trellis/tasks/` as the system of record for requirements, execution context, and completion state.
 - Require the active task to contain `prd.md`, `implement.jsonl`, and `check.jsonl` before execution begins. If any of them are missing, stop and tell the user to run `/trellis-sp:plan` first.
 - `debug.jsonl` is optional at start and may be created or extended later if debugging becomes necessary.
+- Treat `implement.jsonl`, `check.jsonl`, and `debug.jsonl` as Trellis-native preloaded context only; do not rely on them to carry likely touched business code files.
+- When staged execution is used, require each child task `info.md` to carry runtime code-reading guidance such as `Read First`, `Likely Touched Files`, sequencing, and verification targets.
 - Do not modify `.claude/settings.json`, Trellis hooks, or built-in `trellis/*` commands as part of this command.
 - Do not let this command introduce a parallel execution workflow, external plan artifact, or default worktree requirement unless the user explicitly asks for it.
 - Do not treat freeform inline implementation in the main session as the primary path. Real code work must run through Trellis-compatible subagents.
@@ -30,6 +32,7 @@ Preserve disciplined staged execution while routing all substantive work through
    - confirm the active parent task has `prd.md`, `implement.jsonl`, and `check.jsonl`
    - review parent `info.md` or other task-local plan context if present
    - if the workflow was planned as atomic execution, confirm the parent task has ordered child tasks and that each atomic child task has `prd.md`, `implement.jsonl`, and `check.jsonl`
+   - confirm each child task `info.md` is sufficient for runtime reading guidance when staged execution is expected
    - if task context is incomplete, stale, or has critical gaps, stop and send the user back to `/trellis-sp:plan`
 2. Announce that you are using a local execution discipline adapted from Superpowers, but Trellis subagents remain the execution engine.
 3. Use this execution discipline:
@@ -50,7 +53,10 @@ Preserve disciplined staged execution while routing all substantive work through
 6. Atomic child-task execution loop:
    - execute child tasks in their planned order
    - before executing each child task, run `python3 ./.trellis/scripts/task.py start <child-task-dir>` so `.trellis/.current-task` points to that child
-   - for each atomic child task, use its local context and run `implement`
+   - before running `implement`, review the child `prd.md`, child `info.md`, parent `prd.md`, and parent `info.md`
+   - if child `info.md` includes `Read First`, read those files first as runtime entrypoints
+   - if child `info.md` includes `Likely Touched Files`, treat them as runtime candidate files to inspect as needed rather than preloaded jsonl context
+   - for each atomic child task, use its local Trellis preload context plus runtime reading guidance and run `implement`
    - after each child implementation pass, run Trellis `check`
    - if `check` identifies issues, use `debug` or return to `implement` as appropriate for that same child task
    - do not advance to the next child while verification issues remain in the current one
@@ -79,7 +85,8 @@ Preserve disciplined staged execution while routing all substantive work through
 For each atomic child task, prefer a checklist like this before moving on:
 
 - [ ] child task `prd.md` is still accurate
-- [ ] child task `implement.jsonl` and `check.jsonl` still point to the right context
+- [ ] child task `info.md` still provides usable `Read First`, `Likely Touched Files`, sequencing, and verification guidance
+- [ ] child task `implement.jsonl` and `check.jsonl` still point to the right Trellis-native preload context
 - [ ] `implement` completed the intended atomic scope only
 - [ ] `check` passed, or `debug` was used and `check` passed afterward
 - [ ] a short checkpoint summary was recorded before advancing to the next child

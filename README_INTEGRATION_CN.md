@@ -127,7 +127,8 @@
 - `/trellis-sp:specify` 在结束前，应立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <task-dir> --role parent --phase specify`，保证 active parent task 仍能被识别为 adapter-managed task。
 - `/trellis-sp:plan` 在创建或更新 child tasks 时，`.trellis/.current-task` 仍应保持指向 parent task。
 - `/trellis-sp:plan` 在 planning 进行时，应立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase plan`；当 parent 准备好进入 execution handoff 时，再执行 `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase execute`。
-- `/trellis-sp:plan` 对每个新建或更新的 child task，都应立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <child-task-dir> --role child --phase execute`。
+- `/trellis-sp:plan` 还应在 parent 缺失 `implement.jsonl` / `check.jsonl` / `debug.jsonl` 时，先执行 `python3 ./.trellis/scripts/task.py init-context <parent-task-dir> <dev_type>` 初始化父任务上下文，再用 `python3 ./.trellis/scripts/task.py add-context ...` 仅补齐 Trellis-native preload context，例如相关 spec、共享 guides/docs，以及确有必要时极少量可复用 code-pattern reference。likely touched 的业务代码文件应写入 `info.md`，不应通过 jsonl 预载。
+- `/trellis-sp:plan` 对每个新建或更新的 child task，都应在缺失 jsonl 时先执行 `python3 ./.trellis/scripts/task.py init-context <child-task-dir> <dev_type>`，再立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <child-task-dir> --role child --phase execute`；child `info.md` 还应显式记录 `Read First`、likely touched files、实现顺序与验证目标，供运行时按需读取代码。
 - `/trellis-sp:execute` 在执行每个 child task 前，应先把 `.trellis/.current-task` 切到该 child；所有 child 完成后，再切回 parent task 做最终 parent-level `check`。
 - `/trellis:finish-work` 仍然是 Trellis 原生的 finish / handoff 节点；在 adapter lane 里，只能在 `/trellis-sp:execute` 恢复 parent task 并完成 parent-level final `check` 之后进入。
 - child task 只是 staged execution unit，不能单独视为 ready-for-finish-work。
@@ -156,8 +157,8 @@
 - task-level feature spec 的唯一事实来源是 active task `prd.md`
 - `/trellis-sp:brainstorm` 在本地应用受 Superpowers 启发的 brainstorming discipline，但所有需求仍落回 Trellis task PRD；如果原本没有 active task，它还应先创建并激活 parent task，避免后续 `/trellis-sp:specify` 看见 `CURRENT TASK = (none)`
 - `/trellis-sp:brainstorm`、`/trellis-sp:specify`、`/trellis-sp:plan` 还负责通过 `.claude/scripts/trellis-sp-task-meta.py` 持续刷新 `task.json.meta.trellis_sp`，让 parent/child task 在跨 session 时仍能被识别。
-- `/trellis-sp:plan` 必须在需要 staged delivery 时把大任务拆成原子子任务，并把 implementation contract 收敛到 parent/child task-local `info.md` 与 jsonl context files，而不是写入外部 plan artifact；planning 期间 current task 应保持为 parent task
-- `/trellis-sp:execute` 必须按子任务顺序渐进推进，并通过 Trellis-compatible `research` / `implement` / `check` / `debug` subagent 路由真实工作；执行每个 child task 前应切到该 child，全部 child 完成后再切回 parent 做最终 `check`
+- `/trellis-sp:plan` 必须在需要 staged delivery 时把大任务拆成原子子任务，并把 implementation contract 收敛到 parent/child task-local `info.md` 与 jsonl context files，而不是写入外部 plan artifact；planning 期间 current task 应保持为 parent task。jsonl 只承载 Trellis-native preload context，运行时代码读取指引应写入 `info.md`
+- `/trellis-sp:execute` 必须按子任务顺序渐进推进，并通过 Trellis-compatible `research` / `implement` / `check` / `debug` subagent 路由真实工作；执行每个 child task 前应切到该 child，并先审阅 child/parent 的 `prd.md` 与 `info.md`，按 `Read First` 和 likely touched files 在运行时读取真实代码，全部 child 完成后再切回 parent 做最终 `check`
 - `/trellis:start` 在 current-task resume 和 manual-selection 两种入口下，都应读取 `task.json.meta.trellis_sp` 再决定走 adapter flow 还是原生 Trellis flow：parent task 恢复时先读 parent `prd.md` 与 `info.md`；child task 恢复时先读 child `prd.md`，再读 parent `prd.md` 与 parent `info.md`，并先完成当前 child loop，再回到 parent final `check`。
 - 当前 adapter **不会**把执行阶段直接交给 Trellis `dispatch` agent。这样做是有意为之：adapter 现在只做轻量执行桥接，不想过早耦合到完整的 Trellis phase orchestration（例如 `task.json.next_action`、finish/create-pr 语义以及更深的 dispatch 假设）。目前这套设计已经能继承 Trellis 的 hook/context 注入优势，同时保持 adapter 边界清晰。
 - `research` 不是每次强制执行：context 足够时可跳过，context 缺失时必须补齐
@@ -193,7 +194,7 @@
 在这种模型里：
 
 - parent task 保留总体 PRD，以及写在 `info.md` 里的执行顺序
-- 每个 child task 都有自己收窄后的 `prd.md`、`info.md` 和 jsonl context files
+- 每个 child task 都有自己收窄后的 `prd.md`、`info.md` 和 jsonl context files；其中业务代码的运行时目标应写在 `info.md`，而不是放进 jsonl 预载
 - `/trellis-sp:execute` 应该按 child task 逐个推进，而不是把 parent task 当作一个不可分的大实现步骤
 - 每个 child 到达干净的 `check` 结果后，都应停在 review checkpoint 再继续
 - 所有 child 完成后，再做一次 parent-level final `check`
@@ -204,6 +205,7 @@
 - 目标
 - 有序 child task 列表
 - child 到文件的映射
+- shared runtime reading targets
 - verification strategy
 - review checkpoints
 
@@ -212,6 +214,13 @@
 - 一组简短 requirements
 - 1-2 条可验证 acceptance criteria
 - likely touched files
+
+### Child `info.md`
+- `Read First`
+- likely touched files
+- suggested implementation sequence
+- verification targets
+- blockers / assumptions
 
 ### Child 执行 checklist
 - `implement` 只完成当前 child scope

@@ -21,6 +21,8 @@ Superpowers installation is not required at runtime. The adapter vendors and ada
 - Do not wire Superpowers into Trellis `SessionStart` by default.
 - Keep repo artifacts in Trellis locations such as `.trellis/tasks/`, `.trellis/spec/`, and `.trellis/workspace/`.
 - Keep task-level feature specs in the active task `prd.md` instead of creating `specs/` or `.specify/` state.
+- Treat task-local `implement.jsonl`, `check.jsonl`, and `debug.jsonl` as Trellis-native preload context only: relevant `.trellis/spec/...` files, shared guides/docs, and only minimal reusable code-pattern references when truly needed.
+- Do not use task-local jsonl files to preload likely touched business code files; record runtime code-reading guidance in task `info.md` instead.
 - Apply Superpowers-inspired workflow behavior locally inside adapter commands rather than through runtime skill dependencies.
 - Use Superpowers as a method source, but route real implementation/review work through Trellis-compatible subagents when progressive disclosure matters.
 - Formal adapter research must use Trellis research-agent semantics with explicit `subagent_type: "research"` rather than generic Explore-style routing.
@@ -35,9 +37,9 @@ Once the adapter path is chosen:
 - after `/trellis-sp:brainstorm`, the default next step is `/trellis-sp:specify`
 - use `/trellis-sp:clarify` only if high-value ambiguities remain
 - use `/trellis-sp:plan` when the task is already planning-ready or after `/trellis-sp:specify` or `/trellis-sp:clarify` has made it planning-ready
-- treat `/trellis-sp:plan` as the step that creates a Trellis-native atomic child-task workflow when staged delivery is needed
+- treat `/trellis-sp:plan` as the step that creates a Trellis-native atomic child-task workflow when staged delivery is needed, with runtime code-reading guidance written into parent/child `info.md`
 - continue to `/trellis-sp:execute` after planning is complete
-- treat `/trellis-sp:execute` as the step that runs those atomic child tasks progressively through Trellis-compatible subagents and review checkpoints
+- treat `/trellis-sp:execute` as the step that runs those atomic child tasks progressively through Trellis-compatible subagents and review checkpoints, reading real business code at runtime from `Read First` and likely touched-file guidance instead of relying on jsonl preloading
 - treat formal research in this flow as Trellis research, explicitly routed with `subagent_type: "research"`
 - treat `/trellis:finish-work` as a Trellis-native parent-level handoff that happens only after `/trellis-sp:execute` restores the parent task and the parent-level final `check` passes cleanly
 - do not treat child tasks as independently ready for `/trellis:finish-work`
