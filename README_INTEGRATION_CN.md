@@ -38,6 +38,7 @@
 - `.claude/commands/trellis-sp/clarify.md`
 - `.claude/commands/trellis-sp/plan.md`
 - `.claude/commands/trellis-sp/execute.md`
+- `.claude/commands/trellis-sp/replan.md`
 - `.claude/skills/trellis-sp-local/SKILL.md`
 
 命令含义：
@@ -47,6 +48,7 @@
 - `/trellis-sp:clarify` → Trellis-native task PRD 歧义澄清
 - `/trellis-sp:plan` → 本地 planning discipline + Trellis-native 原子子任务拆分与 task-local execution contract
 - `/trellis-sp:execute` → 本地 execution discipline + 通过 Trellis-compatible subagent 渐进执行子任务
+- `/trellis-sp:replan` → 当人工验收发现实现偏差或需求变更时，对 adapter-managed parent task 做二次处理方案规划
 
 ---
 
@@ -95,6 +97,7 @@
 - `.claude/commands/trellis-sp/clarify.md`
 - `.claude/commands/trellis-sp/plan.md`
 - `.claude/commands/trellis-sp/execute.md`
+- `.claude/commands/trellis-sp/replan.md`
 - `.claude/skills/trellis-sp-local/SKILL.md`
 
 ---
@@ -116,6 +119,8 @@
 ```
 
 在 `/trellis-sp:brainstorm` 之后，默认下一步是 `/trellis-sp:specify`。只有在仍然存在高价值歧义时才进入 `/trellis-sp:clarify`；否则当 PRD 已经达到 planning-ready 时，直接继续到 `/trellis-sp:plan`。
+
+如果 parent task 已经执行过一轮，而人工验收后来发现实现偏差或需求变更，应优先使用 `/trellis-sp:replan`，在同一个 parent task 上写出 delta handling plan，然后再返回 `/trellis-sp:execute`。
 
 这条 adapter lane **不会**替代原生 `/trellis:brainstorm`；它是一条从 `/trellis-sp:brainstorm` 显式进入的增强路径。一旦进入 adapter lane，就不要再把用户重定向回原生 brainstorm。
 
@@ -146,7 +151,41 @@
 /trellis:finish-work
 ```
 
-### 场景 C：特别小的修复
+### 场景 C：父任务执行后，人工验收发现偏差或需求变更
+
+```text
+/trellis-sp:replan
+/trellis-sp:execute
+/trellis:check
+/trellis:finish-work
+```
+
+这里的 `/trellis-sp:replan` 应继续复用原 parent task：
+- 仅在需求变更时回写 parent `prd.md`
+- 在 parent `info.md` 里写 delta handling plan
+- 需要 reviewable staged fix 时优先新增 follow-up child task
+
+推荐直接用这种输入方式：
+
+```text
+人工验收发现实现偏差：
+- 当前结果：...
+- 期望结果：...
+- 需求本身未变
+- 只影响：...
+```
+
+或：
+
+```text
+需求有变更：
+- 原要求：...
+- 新要求：...
+- 保留不变：...
+- 需要重新评估受影响 child tasks
+```
+
+### 场景 D：特别小的修复
 
 对于真正 trivial 的改动，也可以完全不走这些增强命令，直接用 Trellis 原生流程。
 

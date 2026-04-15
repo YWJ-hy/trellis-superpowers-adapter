@@ -1,6 +1,6 @@
 {
   "name": "trellis-superpowers-adapter",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "description": "Pluggable Trellis overlay that vendors Superpowers-inspired workflow guidance locally, adds Trellis-native spec authoring commands, and clarifies adapter-lane start-to-finish bridge semantics without replacing Trellis core.",
   "compatibility": {
     "minVersion": "0.4.0-beta.8",
@@ -15,6 +15,7 @@
     ".claude/commands/trellis-sp/clarify.md",
     ".claude/commands/trellis-sp/plan.md",
     ".claude/commands/trellis-sp/execute.md",
+    ".claude/commands/trellis-sp/replan.md",
     ".claude/skills/trellis-sp-local/SKILL.md",
     ".claude/scripts/trellis-sp-task-meta.py"
   ],

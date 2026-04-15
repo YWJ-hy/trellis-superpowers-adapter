@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.10.0
+- Added `/trellis-sp:replan` as a post-verification delta-planning entrypoint for adapter-managed parent tasks.
+- Kept the original parent task as the source of truth for human-validation follow-up work instead of introducing a parallel parent-task workflow.
+- Updated install, verification, README, and Chinese integration docs to describe the new replan flow for implementation deviation and requirement-change scenarios.
+
 ## 1.8.0
 - Added a managed `start.md` interoperability patch so `/trellis-sp:brainstorm` is recognized as the adapter's valid brainstorm path after `/trellis:start`.
 - Extended install, uninstall, restore, verify, manifest, status, doctor, and backup inspection flows to track patch-managed files separately from overlay-owned files.

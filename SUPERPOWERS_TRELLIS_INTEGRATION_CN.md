@@ -64,6 +64,7 @@ adapter 不是通过改 Trellis 核心源码插入的，而是通过一个独立
 - `.claude/commands/trellis-sp/clarify.md`
 - `.claude/commands/trellis-sp/plan.md`
 - `.claude/commands/trellis-sp/execute.md`
+- `.claude/commands/trellis-sp/replan.md`
 - `.claude/skills/trellis-sp-local/SKILL.md`
 
 这些文件来自：
@@ -73,6 +74,7 @@ adapter 不是通过改 Trellis 核心源码插入的，而是通过一个独立
 - `trellis-superpowers-adapter/overlay/.claude/commands/trellis-sp/clarify.md`
 - `trellis-superpowers-adapter/overlay/.claude/commands/trellis-sp/plan.md`
 - `trellis-superpowers-adapter/overlay/.claude/commands/trellis-sp/execute.md`
+- `trellis-superpowers-adapter/overlay/.claude/commands/trellis-sp/replan.md`
 - `trellis-superpowers-adapter/overlay/.claude/skills/trellis-sp-local/SKILL.md`
 
 安装入口仍然是：
@@ -115,6 +117,7 @@ adapter 不是通过改 Trellis 核心源码插入的，而是通过一个独立
 | Clarify | 在实现前消除高价值歧义 | 用 Trellis-native clarification 流程回写 active task `prd.md` | `/trellis-sp:clarify` | Trellis-native |
 | Plan | 把需求转成可执行计划 | 用本地内嵌 planning discipline 在需要时拆成原子子任务，并生成 parent/child task-local execution contract | `/trellis-sp:plan` | 无需外部 skill |
 | Execute | 推进实现与校验 | 用本地内嵌 execution discipline 按原子子任务渐进执行，并把真实工作路由给 Trellis subagents | `/trellis-sp:execute` | 无需外部 skill |
+| Replan | 人工验收后处理实现偏差或需求变更 | 在原 parent task 上归类反馈、更新 PRD/计划增量，并把流程安全送回 execution | `/trellis-sp:replan` | 无需外部 skill |
 
 ### 4.2 明确没有插入的节点
 
@@ -136,6 +139,7 @@ adapter 不是通过改 Trellis 核心源码插入的，而是通过一个独立
 - Clarify
 - Plan
 - Execute
+- Replan
 
 它**不接管** Trellis 的系统骨架。
 
@@ -190,6 +194,8 @@ flowchart TD
     F --> G[Research]
     G --> H[Configure Context]
     H --> I[/trellis-sp:execute/]
+    I -->|人工验收后发现偏差/变更| I2[/trellis-sp:replan/]
+    I2 --> I
     I --> J[/trellis:check/]
     J --> K[/trellis:finish-work/]
     K --> L[/trellis:record-session/]
@@ -217,6 +223,7 @@ flowchart TD
 - `trellis-sp:clarify` 增强歧义收敛节点
 - `trellis-sp:plan` 在需要 staged delivery 时把计划拆成原子子任务，并收敛成 parent/child task-local execution contract；planning 期间 current task 仍保持 parent
 - `trellis-sp:execute` 按原子子任务增强执行节点，但真实工作仍回到 Trellis-compatible subagent；执行 child 时切到 child，最终校验前再切回 parent
+- `trellis-sp:replan` 是执行后的人审反馈处理入口：它继续复用原 parent task，对“实现偏差 / 需求变更 / 混合情况”做归类，写出 delta handling plan，再回到 `execute`
 - `trellis:check`、`finish-work`、`record-session` 继续构成 Trellis 原生闭环，其中 `finish-work` 只能在 parent-level final `check` 之后触发
 - child task 只是 staged execution unit，不应被单独视为 ready-for-finish-work；只有 parent task 才能进入 Trellis-native finish handoff
 - handoff 到 `finish-work` 之前，应显式判断是否需要通过 `/trellis:update-spec` 回灌这次流程中发现的通用规则、约束或调试经验
@@ -232,7 +239,7 @@ flowchart TD
 
 ---
 
-## 6. 五个增强节点分别是什么含义
+## 6. 六个增强节点分别是什么含义
 
 ### 6.1 Brainstorm
 
@@ -319,9 +326,36 @@ flowchart TD
 - 每个 child task 完成后都要经过 review checkpoint
 - 所有 child task 结束后，最终验证必须显式回到 parent-level Trellis `check`
 
+### 6.6 Replan：当人工验收发现实现偏差或需求变更
+
+如果 parent task 已经走完一轮 `/trellis-sp:execute`，后来人工验收发现：
+
+- 做出来的效果不是最初想要的
+- 或者需求本身发生了变化
+- 或者两者同时存在
+
+此时不应该简单地把已经完成的 child task 改写成另一件事，也不应该新开一个平行 parent task。更合适的做法是：
+
+1. 进入 `/trellis-sp:replan`
+2. 继续复用原 parent task 作为唯一 source of truth
+3. 先判断属于：
+   - 实现偏差
+   - 需求变更
+   - 混合情况
+4. 仅在需求变更时回写 parent `prd.md`
+5. 在 parent `info.md` 中追加一段 delta handling plan
+6. 如果这轮返工已经形成新的 reviewable work unit，就新增 follow-up child task，而不是重写已完成 child task
+7. 再回到 `/trellis-sp:execute`，按正常 Trellis-compatible execution/checkpoint/final-check 流程完成修正
+
+这个节点的本质不是 reopen 一个新工作流，而是：
+
+- 保留第一轮执行历史
+- 把第二轮人审反馈变成可执行的增量计划
+- 继续遵守 parent final `check` → `finish-work` 的 Trellis 闭环
+
 ---
 
-## 6.6 一个原子子任务执行示例
+## 6.7 一个原子子任务执行示例
 
 假设当前 active Trellis task 是一个 parent task：
 
@@ -410,7 +444,21 @@ cd trellis-superpowers-adapter
 /trellis:finish-work
 ```
 
-#### 场景 C：特别小的修复
+#### 场景 C：父任务执行后，人工验收发现偏差或需求变更
+
+```text
+/trellis-sp:replan
+/trellis-sp:execute
+/trellis:check
+/trellis:finish-work
+```
+
+这里的 `/trellis-sp:replan` 应继续复用原 parent task：
+- 仅在需求变更时回写 parent `prd.md`
+- 在 parent `info.md` 中写 delta handling plan
+- 需要 reviewable staged fix 时优先新增 follow-up child task
+
+#### 场景 D：特别小的修复
 
 对于真正 trivial 的改动，也可以完全不走这套增强命令，直接走 Trellis 原生流程。
 
@@ -424,6 +472,7 @@ cd trellis-superpowers-adapter
 - `/trellis:start` 在 current-task 与 manual-selection 两种恢复入口下，都应先读 `task.json.meta.trellis_sp` 再分流：parent task 恢复时读取 parent `prd.md` 与 `info.md`；child task 恢复时读取 child `prd.md`、parent `prd.md`、parent `info.md`，先完成当前 child loop，再回到 parent final `check`
 - 运行时用于识别任务身份的 metadata 位于 `task.json.meta.trellis_sp`；推荐字段为 `managed`、`role`、`workflow_version`、`last_phase`，并由 `.claude/scripts/trellis-sp-task-meta.py` 负责写入与刷新
 - 当前 adapter **不会**把执行阶段直接托管给 Trellis `dispatch` agent。原因是：dispatch 代表的是更完整的 Trellis pipeline orchestration，不只是调用 implement/check，还会进一步依赖 `task.json.next_action`、finish/create-pr 等更深层的 phase 语义。对于 adapter 来说，现在先保持“执行桥接层”定位更稳：既能复用 Trellis subagent、hook 注入和 Ralph Loop，又不会过早把 adapter 和完整 dispatch pipeline 绑定在一起。
+- `/trellis-sp:replan` 不会新开一条平行父任务工作流；它只是在同一个 parent task 上，把人审反馈转成 delta handling plan，再回到正常的 adapter execution 闭环。
 - `research` 在文档语义上仍然是 Trellis 标准 planning 步骤，但运行时采用按需触发：context 足够时可跳过，context 缺失时必须补齐
 - Ralph Loop 只有在路线真正进入 Trellis `check` subagent 时才会重新生效，因此最终验证必须收口到 Trellis `check`
 - 这套 adapter 的存在目的之一，就是避免用户因为安装 Superpowers 而引入 hook 自动加载冲突

@@ -30,6 +30,7 @@ REQUIRED_OVERLAY_FILES=(
   ".claude/commands/trellis-sp/clarify.md"
   ".claude/commands/trellis-sp/plan.md"
   ".claude/commands/trellis-sp/execute.md"
+  ".claude/commands/trellis-sp/replan.md"
   ".claude/skills/trellis-sp-local/SKILL.md"
   ".claude/scripts/trellis-sp-task-meta.py"
 )
@@ -273,4 +274,5 @@ printf '  /trellis-sp:specify\n'
 printf '  /trellis-sp:clarify\n'
 printf '  /trellis-sp:plan\n'
 printf '  /trellis-sp:execute\n'
+printf '  /trellis-sp:replan\n'
 printf 'Next step: run %s/verify.sh "%s"\n' "$SCRIPT_DIR" "$TARGET_DIR"

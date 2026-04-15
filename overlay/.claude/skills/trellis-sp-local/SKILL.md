@@ -41,6 +41,7 @@ Once the adapter path is chosen:
 - treat `/trellis-sp:plan` as the step that creates a Trellis-native atomic child-task workflow when staged delivery is needed, with runtime code-reading guidance written into parent/child `info.md`
 - continue to `/trellis-sp:execute` after planning is complete
 - treat `/trellis-sp:execute` as the step that runs those atomic child tasks progressively through Trellis-compatible subagents and review checkpoints, reading real business code at runtime from `Read First` and likely touched-file guidance instead of relying on jsonl preloading
+- when post-execution human verification finds implementation deviation or changed requirements, use `/trellis-sp:replan` to update the parent task and produce a delta handling plan before returning to `/trellis-sp:execute`
 - treat formal research in this flow as Trellis research, explicitly routed with `subagent_type: "research"`
 - treat `/trellis:finish-work` as a Trellis-native parent-level handoff that happens only after `/trellis-sp:execute` restores the parent task and the parent-level final `check` passes cleanly
 - do not treat child tasks as independently ready for `/trellis:finish-work`
@@ -54,6 +55,7 @@ Once the adapter path is chosen:
 - `/trellis-sp:clarify` → Trellis-native task PRD clarification
 - `/trellis-sp:plan` → local planning discipline adapted from Superpowers + Trellis-native atomic child-task decomposition and parent/child task-local execution contracts
 - `/trellis-sp:execute` → local execution discipline adapted from Superpowers + progressive child-task execution through Trellis-compatible subagents and review checkpoints
+- `/trellis-sp:replan` → post-verification delta planning for adapter-managed parent tasks after human validation finds implementation deviation or changed requirements
 
 ## Lifecycle
 

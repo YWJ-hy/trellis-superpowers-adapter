@@ -52,7 +52,10 @@ grep -q 'Child-task resume template:' "$PROJECT_DIR/.claude/commands/trellis/sta
 grep -q 'Parent-task resume template:' "$PROJECT_DIR/.claude/commands/trellis/start.md" || fail 'patched start.md did not include parent-task resume template'
 grep -q 'then usually `/trellis-sp:specify`' "$PROJECT_DIR/.claude/commands/trellis/start.md" || fail 'patched start.md did not recommend specify as the default next step after brainstorm'
 grep -q '`/trellis-sp:clarify` only if high-value ambiguities remain' "$PROJECT_DIR/.claude/commands/trellis/start.md" || fail 'patched start.md did not keep clarify conditional'
+grep -q '/trellis-sp:replan' <<< "$BOOTSTRAP_OUTPUT" || fail 'bootstrap output did not list the replan command'
 [[ -f "$PROJECT_DIR/.claude/scripts/trellis-sp-task-meta.py" ]] || fail 'bootstrap did not install trellis-sp task metadata writer'
+[[ -f "$PROJECT_DIR/.claude/commands/trellis-sp/replan.md" ]] || fail 'bootstrap did not install trellis-sp replan command'
+grep -q 'post-execution human verification feedback or changed requirements' "$PROJECT_DIR/.claude/commands/trellis-sp/replan.md" || fail 'installed replan command did not keep the post-verification trigger contract'
 python3 "$PROJECT_DIR/.claude/scripts/trellis-sp-task-meta.py" --repo-root "$PROJECT_DIR" ".trellis/tasks/04-14-parent" --role parent --phase plan >/dev/null 2>&1 && fail 'metadata writer unexpectedly succeeded for missing task'
 mkdir -p "$PROJECT_DIR/.trellis/tasks/04-14-parent" "$PROJECT_DIR/.trellis/tasks/04-14-child"
 cat > "$PROJECT_DIR/.trellis/tasks/04-14-parent/task.json" <<'EOF'
@@ -113,6 +116,7 @@ assert manifest['patchState']['states'][0]['status'] == 'patched'
 PY
 
 "$ADAPTER_DIR/manage.sh" uninstall "$PROJECT_DIR" >/dev/null || fail 'uninstall failed for real-project target'
+[[ ! -e "$PROJECT_DIR/.claude/commands/trellis-sp/replan.md" ]] || fail 'uninstall did not remove trellis-sp replan command'
 if grep -q "$START_MARKER" "$PROJECT_DIR/.claude/commands/trellis/start.md"; then
   fail 'uninstall did not remove start interop block'
 fi

@@ -114,6 +114,7 @@ SPECIFY_FILE="$(installed_file '.claude/commands/trellis-sp/specify.md')"
 CLARIFY_FILE="$(installed_file '.claude/commands/trellis-sp/clarify.md')"
 PLAN_FILE="$(installed_file '.claude/commands/trellis-sp/plan.md')"
 EXECUTE_FILE="$(installed_file '.claude/commands/trellis-sp/execute.md')"
+REPLAN_FILE="$(installed_file '.claude/commands/trellis-sp/replan.md')"
 SKILL_FILE="$(installed_file '.claude/skills/trellis-sp-local/SKILL.md')"
 META_WRITER_FILE="$(installed_file '.claude/scripts/trellis-sp-task-meta.py')"
 README_FILE="$SCRIPT_DIR/README.md"
@@ -189,6 +190,19 @@ assert_contains "$EXECUTE_FILE" 'recommend `/trellis:record-session` after finis
 assert_contains "$EXECUTE_FILE" 'Recommended execution checklist' 'execute checklist section'
 assert_contains "$EXECUTE_FILE" 'child task `prd.md` is still accurate' 'execute child readiness checklist'
 assert_contains "$EXECUTE_FILE" 'every ordered child task completed' 'execute final workflow checklist'
+assert_contains "$REPLAN_FILE" 'post-execution human verification feedback or changed requirements' 'replan post-verification trigger'
+assert_contains "$REPLAN_FILE" 'implementation deviation' 'replan implementation deviation branch'
+assert_contains "$REPLAN_FILE" 'requirement changed' 'replan requirement changed branch'
+assert_contains "$REPLAN_FILE" 'mixed' 'replan mixed branch'
+assert_contains "$REPLAN_FILE" 'Do not execute implementation directly in this command.' 'replan no direct execution rule'
+assert_contains "$REPLAN_FILE" 'Do not rewrite completed child tasks into unrelated work; prefer new follow-up child tasks' 'replan follow-up child rule'
+assert_contains "$REPLAN_FILE" 'update the parent `prd.md` only when the branch is `requirement changed` or `mixed`' 'replan selective prd updates'
+assert_contains "$REPLAN_FILE" '## Suggested input shapes' 'replan suggested input section'
+assert_contains "$REPLAN_FILE" '人工验收发现实现偏差：' 'replan implementation deviation example'
+assert_contains "$REPLAN_FILE" '需求有变更：' 'replan requirement changed example'
+assert_contains "$REPLAN_FILE" '这次既有需求变更也有实现偏差：' 'replan mixed example'
+assert_contains "$REPLAN_FILE" 'the default next step is `/trellis-sp:execute`' 'replan execute handoff'
+assert_contains "$REPLAN_FILE" 'do not suggest `/trellis:finish-work` from this command' 'replan no finish-work handoff'
 assert_contains "$META_WRITER_FILE" 'Update task.json meta.trellis_sp for adapter-managed tasks.' 'metadata writer description'
 assert_contains "$META_WRITER_FILE" 'choices=("parent", "child")' 'metadata writer role choices'
 assert_contains "$META_WRITER_FILE" 'choices=("brainstorm", "specify", "clarify", "plan", "execute")' 'metadata writer phase choices'
@@ -203,6 +217,7 @@ assert_contains "$SKILL_FILE" 'route real implementation/review work through Tre
 assert_contains "$SKILL_FILE" 'task.py create` already prepends `MM-DD-`' 'skill slug date-prefix rule'
 assert_contains "$SKILL_FILE" 'promoted via `/trellis:update-spec`' 'skill update-spec knowledge gate'
 assert_contains "$SKILL_FILE" 'use `/trellis:record-session`' 'skill record-session knowledge gate'
+assert_contains "$SKILL_FILE" 'use `/trellis-sp:replan` to update the parent task and produce a delta handling plan before returning to `/trellis-sp:execute`' 'skill replan flow guidance'
 
 assert_not_regex_in_files 'superpowers:|install or enable the Superpowers plugin|install Superpowers|enable Superpowers plugin' 'Superpowers runtime dependency language' "${RUNTIME_FILES[@]}"
 assert_contains "$BRAINSTORM_FILE" 'do not include a date prefix like `04-15-`' 'brainstorm slug no-date-prefix rule'
@@ -239,17 +254,21 @@ assert_contains "$README_FILE" 'Current-task rules in this adapter flow:' 'READM
 assert_contains "$README_FILE" 'set `.trellis/.current-task` to that parent before handing off to `/trellis-sp:specify`' 'README brainstorm parent activation'
 assert_contains "$README_FILE" 'keep the parent task as the current task while creating or updating child tasks' 'README plan keeps parent current'
 assert_contains "$README_FILE" 'switch `.trellis/.current-task` to each child task before running child-local `implement` / `check` / `debug`' 'README execute child current-task switch'
+assert_contains "$README_FILE" 'use `/trellis-sp:replan` to update the same parent task, write a delta handling plan, and then return to `/trellis-sp:execute`' 'README replan handoff'
+assert_contains "$README_FILE" 'A good `/trellis-sp:replan` input should explicitly say' 'README replan input guidance'
 assert_contains "$README_FILE" 'promoted via `/trellis:update-spec`' 'README update-spec knowledge gate'
 assert_contains "$README_FILE" 'use `/trellis:record-session`' 'README record-session knowledge gate'
 assert_contains "$README_INTEGRATION_CN_FILE" 'current task 规则需要明确理解' 'README CN current-task rules section'
 assert_contains "$README_INTEGRATION_CN_FILE" '把 `.trellis/.current-task` 设为 parent task' 'README CN brainstorm parent activation'
 assert_contains "$README_INTEGRATION_CN_FILE" '`.trellis/.current-task` 仍应保持指向 parent task' 'README CN plan keeps parent current'
 assert_contains "$README_INTEGRATION_CN_FILE" '先把 `.trellis/.current-task` 切到该 child' 'README CN execute child current-task switch'
+assert_contains "$README_INTEGRATION_CN_FILE" '应优先使用 `/trellis-sp:replan`' 'README CN replan handoff'
 assert_contains "$README_INTEGRATION_CN_FILE" '通过 `/trellis:update-spec` 沉淀' 'README CN update-spec knowledge gate'
 assert_contains "$README_INTEGRATION_CN_FILE" '继续走 `/trellis:record-session`' 'README CN record-session knowledge gate'
 assert_contains "$INTEGRATION_CN_FILE" '应确保 parent task 被设为 current task' 'integration doc brainstorm parent current-task'
 assert_contains "$INTEGRATION_CN_FILE" 'planning 期间 current task 仍保持 parent' 'integration doc plan keeps parent current'
 assert_contains "$INTEGRATION_CN_FILE" '执行 child 时切到 child，最终校验前再切回 parent' 'integration doc execute current-task switching'
+assert_contains "$INTEGRATION_CN_FILE" '进入 `/trellis-sp:replan`' 'integration doc replan section'
 assert_contains "$INTEGRATION_CN_FILE" '通过 `/trellis:update-spec` 回灌' 'integration doc update-spec knowledge gate'
 assert_contains "$INTEGRATION_CN_FILE" '通过 `/trellis:record-session` 保存' 'integration doc record-session knowledge gate'
 
@@ -265,5 +284,6 @@ printf '  /trellis-sp:specify\n'
 printf '  /trellis-sp:clarify\n'
 printf '  /trellis-sp:plan\n'
 printf '  /trellis-sp:execute\n'
+printf '  /trellis-sp:replan\n'
 printf 'Verified patched interop:\n'
 printf '  %s\n' "$START_INTEROP_PATH"
