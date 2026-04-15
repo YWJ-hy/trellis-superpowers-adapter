@@ -26,6 +26,7 @@ Turn an idea or ambiguous task into a Trellis-native, PRD-backed set of confirme
 1. Resolve task context first:
    - confirm there is an active Trellis task
    - if no active task exists, create a Trellis task for this work and set it as the current task before deep brainstorming continues
+   - if you pass `--slug` to `python3 ./.trellis/scripts/task.py create`, pass only a bare semantic slug such as `insurance-rule-management`; do not include a date prefix like `04-15-` because `task.py create` already prepends `MM-DD-` to the directory name
    - when you create the task, immediately run `python3 ./.trellis/scripts/task.py start <task-dir>` so `.trellis/.current-task` points to the parent task
    - ensure the active or newly created parent task remains marked in `task.json` under `meta.trellis_sp` with `managed=true`, `role="parent"`, `workflow_version=1`, and `last_phase="brainstorm"`
    - immediately run `python3 .claude/scripts/trellis-sp-task-meta.py <task-dir> --role parent --phase brainstorm` whenever you create the task or detect that the marker is missing or stale

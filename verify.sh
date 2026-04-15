@@ -200,10 +200,12 @@ assert_contains "$SKILL_FILE" 'use `/trellis-sp:plan` when the task is already p
 assert_contains "$SKILL_FILE" 'creates a Trellis-native atomic child-task workflow' 'skill atomic plan workflow'
 assert_contains "$SKILL_FILE" 'runs those atomic child tasks progressively' 'skill atomic execute workflow'
 assert_contains "$SKILL_FILE" 'route real implementation/review work through Trellis-compatible subagents' 'skill Trellis subagent routing'
+assert_contains "$SKILL_FILE" 'task.py create` already prepends `MM-DD-`' 'skill slug date-prefix rule'
 assert_contains "$SKILL_FILE" 'promoted via `/trellis:update-spec`' 'skill update-spec knowledge gate'
 assert_contains "$SKILL_FILE" 'use `/trellis:record-session`' 'skill record-session knowledge gate'
 
 assert_not_regex_in_files 'superpowers:|install or enable the Superpowers plugin|install Superpowers|enable Superpowers plugin' 'Superpowers runtime dependency language' "${RUNTIME_FILES[@]}"
+assert_contains "$BRAINSTORM_FILE" 'do not include a date prefix like `04-15-`' 'brainstorm slug no-date-prefix rule'
 assert_not_regex "$BRAINSTORM_FILE" 'write design doc|docs/superpowers/specs/YYYY-MM-DD|docs/superpowers/plans/YYYY-MM-DD' 'raw Superpowers external artifact behavior'
 assert_not_regex "$SPECIFY_FILE" 'SPECIFY_FEATURE_DIRECTORY|FEATURE_DIR|\.specify/feature\.json' 'spec-kit workspace artifacts'
 assert_not_regex "$CLARIFY_FILE" 'SPECIFY_FEATURE_DIRECTORY|FEATURE_DIR|\.specify/feature\.json' 'spec-kit workspace artifacts'

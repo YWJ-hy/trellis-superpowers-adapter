@@ -23,6 +23,7 @@ Superpowers installation is not required at runtime. The adapter vendors and ada
 - Keep task-level feature specs in the active task `prd.md` instead of creating `specs/` or `.specify/` state.
 - Treat task-local `implement.jsonl`, `check.jsonl`, and `debug.jsonl` as Trellis-native preload context only: relevant `.trellis/spec/...` files, shared guides/docs, and only minimal reusable code-pattern references when truly needed.
 - Do not use task-local jsonl files to preload likely touched business code files; record runtime code-reading guidance in task `info.md` instead.
+- When creating Trellis tasks through `task.py create --slug`, pass only a bare semantic slug; do not include a date prefix because `task.py create` already prepends `MM-DD-` to the task directory name.
 - Apply Superpowers-inspired workflow behavior locally inside adapter commands rather than through runtime skill dependencies.
 - Use Superpowers as a method source, but route real implementation/review work through Trellis-compatible subagents when progressive disclosure matters.
 - Formal adapter research must use Trellis research-agent semantics with explicit `subagent_type: "research"` rather than generic Explore-style routing.
