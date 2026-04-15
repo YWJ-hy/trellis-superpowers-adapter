@@ -27,7 +27,7 @@ marker_start = sys.argv[2]
 marker_end = sys.argv[3]
 if not path.exists():
     raise SystemExit(0)
-text = path.read_text()
+text = path.read_text(encoding='utf-8')
 start = text.find(marker_start)
 end = text.find(marker_end)
 if start == -1 or end == -1:
@@ -45,7 +45,7 @@ elif remainder:
     new_text = remainder
 elif new_text:
     new_text += '\n'
-path.write_text(new_text)
+path.write_text(new_text, encoding='utf-8')
 PY
 }
 

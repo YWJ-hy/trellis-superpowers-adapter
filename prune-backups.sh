@@ -19,7 +19,7 @@ if [[ ! -d "$TARGET_DIR/.trellis" ]]; then
   exit 1
 fi
 
-BACKUP_ROOT_REL=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["conflictPolicy"]["backupRoot"])' "$ADAPTER_JSON")
+BACKUP_ROOT_REL=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["conflictPolicy"]["backupRoot"])' "$ADAPTER_JSON")
 BACKUP_ROOT="$TARGET_DIR/$BACKUP_ROOT_REL"
 
 if [[ ! -d "$BACKUP_ROOT" ]]; then

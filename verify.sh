@@ -60,7 +60,7 @@ assert_count() {
   count=$(python3 - "$file" "$needle" <<'PY'
 import sys
 from pathlib import Path
-text = Path(sys.argv[1]).read_text()
+text = Path(sys.argv[1]).read_text(encoding='utf-8')
 print(text.count(sys.argv[2]))
 PY
 )

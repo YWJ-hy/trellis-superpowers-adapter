@@ -41,7 +41,7 @@ marker_end = sys.argv[3]
 if not path.exists():
     print('missing-file')
     raise SystemExit(0)
-text = path.read_text()
+text = path.read_text(encoding='utf-8')
 start_count = text.count(marker_start)
 end_count = text.count(marker_end)
 if start_count == 1 and end_count == 1:
@@ -83,7 +83,7 @@ for name in sorted(os.listdir(root), reverse=True):
         for filename in files:
             rel = os.path.relpath(os.path.join(current_root, filename), path)
             if rel == metadata_name:
-                metadata = json.load(open(os.path.join(current_root, filename)))
+                metadata = json.load(open(os.path.join(current_root, filename), encoding='utf-8'))
                 continue
             file_count += 1
     entries.append((name, file_count, metadata))

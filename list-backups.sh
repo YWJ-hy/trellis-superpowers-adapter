@@ -18,8 +18,8 @@ if [[ ! -d "$TARGET_DIR/.trellis" ]]; then
   exit 1
 fi
 
-BACKUP_ROOT_REL=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["conflictPolicy"]["backupRoot"])' "$ADAPTER_JSON")
-SNAPSHOT_METADATA_FILE=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["snapshotMetadataFile"])' "$ADAPTER_JSON")
+BACKUP_ROOT_REL=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["conflictPolicy"]["backupRoot"])' "$ADAPTER_JSON")
+SNAPSHOT_METADATA_FILE=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["snapshotMetadataFile"])' "$ADAPTER_JSON")
 BACKUP_ROOT="$TARGET_DIR/$BACKUP_ROOT_REL"
 
 if [[ ! -d "$BACKUP_ROOT" ]]; then
@@ -46,7 +46,7 @@ for name in sorted(os.listdir(root)):
         for filename in files:
             rel = os.path.relpath(os.path.join(current_root, filename), path)
             if rel == metadata_name:
-                metadata = json.load(open(os.path.join(current_root, filename)))
+                metadata = json.load(open(os.path.join(current_root, filename), encoding='utf-8'))
                 continue
             file_count += 1
     entries.append((name, file_count, metadata))
@@ -78,7 +78,7 @@ import os
 import sys
 
 snapshot_dir = sys.argv[1]
-adapter_json = json.load(open(sys.argv[2]))
+adapter_json = json.load(open(sys.argv[2], encoding='utf-8'))
 metadata_name = sys.argv[3]
 allowed = set(adapter_json["installedPaths"]) | set(adapter_json.get("patchedPaths", []))
 found = []
@@ -88,7 +88,7 @@ for root, _, files in os.walk(snapshot_dir):
     for name in files:
         rel = os.path.relpath(os.path.join(root, name), snapshot_dir)
         if rel == metadata_name:
-            metadata = json.load(open(os.path.join(root, name)))
+            metadata = json.load(open(os.path.join(root, name), encoding='utf-8'))
             continue
         if rel not in allowed:
             raise SystemExit(f'Unexpected file in snapshot: {rel}')

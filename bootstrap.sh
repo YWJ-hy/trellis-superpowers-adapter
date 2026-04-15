@@ -7,7 +7,7 @@ TARGET_DIR="$(cd "$TARGET_ARG" && pwd)"
 
 MANIFEST_JSON=$("$SCRIPT_DIR/export-manifest.sh" "$TARGET_DIR")
 
-BOOTSTRAP_DECISION=$(python3 - <<'PY' "$MANIFEST_JSON"
+BOOTSTRAP_DECISION=$(python3 - <<'PY' "$MANIFEST_JSON" | tr -d '\r'
 import json
 import sys
 

@@ -45,7 +45,7 @@ marker_end = sys.argv[3]
 if not path.exists():
     print('missing-file')
     raise SystemExit(0)
-text = path.read_text()
+text = path.read_text(encoding='utf-8')
 start_count = text.count(marker_start)
 end_count = text.count(marker_end)
 if start_count == 1 and end_count == 1:

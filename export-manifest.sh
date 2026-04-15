@@ -28,13 +28,13 @@ if ! VERIFY_OUTPUT=$("$SCRIPT_DIR/verify.sh" "$TARGET_DIR" 2>&1); then
   VERIFY_STATUS="failed"
 fi
 
-MANIFEST_JSON=$(python3 - "$ADAPTER_JSON" "$TARGET_DIR" "$TRELLIS_VERSION" "$VERIFY_STATUS" "$BACKUP_ROOT" "$SNAPSHOT_METADATA_FILE" "$TRELLIS_VERSION_FILE" "$TRELLIS_TEMPLATE_HASHES_FILE" "$TRELLIS_TEMPLATE_HASHES_PRESENT" <<'PY'
+MANIFEST_JSON=$(python3 - "$ADAPTER_JSON" "$TARGET_DIR" "$TRELLIS_VERSION" "$VERIFY_STATUS" "$BACKUP_ROOT" "$SNAPSHOT_METADATA_FILE" "$TRELLIS_VERSION_FILE" "$TRELLIS_TEMPLATE_HASHES_FILE" "$TRELLIS_TEMPLATE_HASHES_PRESENT" <<'PY' | tr -d '\r'
 import json
 import os
 import sys
 
 adapter_json_path, target_dir, trellis_version, verify_status, backup_root, metadata_name, version_file, template_hashes_file, template_hashes_present = sys.argv[1:]
-adapter = json.load(open(adapter_json_path))
+adapter = json.load(open(adapter_json_path, encoding='utf-8'))
 installed_paths = adapter["installedPaths"]
 patched_paths = adapter.get("patchedPaths", [])
 patch_config = adapter.get("patchConfig", {}).get("startInterop", {})
@@ -59,7 +59,7 @@ for rel in patched_paths:
         patch_states.append({"path": rel, "status": "missing-file"})
         continue
     patched_files.append(rel)
-    text = open(full).read()
+    text = open(full, encoding='utf-8').read()
     start_count = text.count(marker_start) if marker_start else 0
     end_count = text.count(marker_end) if marker_end else 0
     if start_count == 1 and end_count == 1:
@@ -87,7 +87,7 @@ if os.path.isdir(backup_root):
             for filename in file_names:
                 rel = os.path.relpath(os.path.join(root, filename), path)
                 if rel == metadata_name:
-                    metadata = json.load(open(os.path.join(root, filename)))
+                    metadata = json.load(open(os.path.join(root, filename), encoding='utf-8'))
                 else:
                     files.append(rel)
         snapshots.append({

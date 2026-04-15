@@ -34,7 +34,7 @@ import sys
 
 snapshot_dir, metadata_name, adapter_name, adapter_version, created_at, trellis_version, created_by, operation, *files = sys.argv[1:]
 path = os.path.join(snapshot_dir, metadata_name)
-with open(path, 'w') as f:
+with open(path, 'w', encoding='utf-8') as f:
     json.dump({
         'adapterName': adapter_name,
         'adapterVersion': adapter_version,
@@ -80,7 +80,7 @@ import os
 import sys
 
 snapshot_dir = sys.argv[1]
-adapter_json = json.load(open(sys.argv[2]))
+adapter_json = json.load(open(sys.argv[2], encoding='utf-8'))
 metadata_name = sys.argv[3]
 allowed = set(adapter_json["installedPaths"]) | set(adapter_json.get("patchedPaths", []))
 found = []
@@ -90,7 +90,7 @@ for root, _, files in os.walk(snapshot_dir):
     for name in files:
         rel = os.path.relpath(os.path.join(root, name), snapshot_dir)
         if rel == metadata_name:
-            metadata = json.load(open(os.path.join(root, name)))
+            metadata = json.load(open(os.path.join(root, name), encoding='utf-8'))
             continue
         if rel not in allowed:
             raise SystemExit(f'Unexpected file in snapshot: {rel}')

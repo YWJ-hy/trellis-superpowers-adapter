@@ -52,7 +52,7 @@ import sys
 
 snapshot_dir, metadata_name, adapter_name, adapter_version, created_at, trellis_version, created_by, operation, *files = sys.argv[1:]
 path = os.path.join(snapshot_dir, metadata_name)
-with open(path, 'w') as f:
+with open(path, 'w', encoding='utf-8') as f:
     json.dump({
         'adapterName': adapter_name,
         'adapterVersion': adapter_version,
@@ -86,7 +86,7 @@ path = Path(sys.argv[1])
 marker_start = sys.argv[2]
 marker_end = sys.argv[3]
 expected = sys.argv[4]
-text = path.read_text()
+text = path.read_text(encoding='utf-8')
 start = text.find(marker_start)
 end = text.find(marker_end)
 if start == -1 or end == -1:
@@ -107,14 +107,14 @@ import sys
 from pathlib import Path
 
 path = Path(sys.argv[1])
-text = path.read_text()
+text = path.read_text(encoding='utf-8')
 block = sys.argv[2]
 if not text.endswith('\n'):
     text += '\n'
 if not text.endswith('\n\n'):
     text += '\n'
 text += block
-path.write_text(text)
+path.write_text(text, encoding='utf-8')
 PY
 }
 
@@ -127,7 +127,7 @@ from pathlib import Path
 path = Path(sys.argv[1])
 marker_start = sys.argv[2]
 marker_end = sys.argv[3]
-text = path.read_text()
+text = path.read_text(encoding='utf-8')
 start = text.find(marker_start)
 end = text.find(marker_end)
 if start == -1 or end == -1:
@@ -140,7 +140,7 @@ while start > 0 and text[start-1:start] == '\n' and start - 1 > 0 and text[start
 new_text = text[:start].rstrip('\n')
 if new_text:
     new_text += '\n'
-path.write_text(new_text)
+path.write_text(new_text, encoding='utf-8')
 PY
 }
 

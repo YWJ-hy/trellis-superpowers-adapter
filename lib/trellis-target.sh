@@ -9,11 +9,11 @@ require_adapter_metadata() {
 
 adapter_json_value() {
   local key_path="$1"
-  python3 - "$ADAPTER_JSON" "$key_path" <<'PY'
+  python3 - "$ADAPTER_JSON" "$key_path" <<'PY' | tr -d '\r'
 import json
 import sys
 
-data = json.load(open(sys.argv[1]))
+data = json.load(open(sys.argv[1], encoding='utf-8'))
 for part in sys.argv[2].split('.'):
     data = data[part]
 if isinstance(data, (dict, list)):
@@ -24,11 +24,11 @@ PY
 
 adapter_json_lines() {
   local key_path="$1"
-  python3 - "$ADAPTER_JSON" "$key_path" <<'PY'
+  python3 - "$ADAPTER_JSON" "$key_path" <<'PY' | tr -d '\r'
 import json
 import sys
 
-data = json.load(open(sys.argv[1]))
+data = json.load(open(sys.argv[1], encoding='utf-8'))
 for part in sys.argv[2].split('.'):
     data = data[part]
 if not isinstance(data, list):

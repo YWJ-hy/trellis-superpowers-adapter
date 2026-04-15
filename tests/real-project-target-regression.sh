@@ -75,8 +75,8 @@ python3 - "$PROJECT_DIR/.trellis/tasks/04-14-parent/task.json" "$PROJECT_DIR/.tr
 import json
 import sys
 parent_path, child_path = sys.argv[1:3]
-parent = json.load(open(parent_path))
-child = json.load(open(child_path))
+parent = json.load(open(parent_path, encoding='utf-8'))
+child = json.load(open(child_path, encoding='utf-8'))
 parent_meta = parent.get('meta', {}).get('trellis_sp', {})
 child_meta = child.get('meta', {}).get('trellis_sp', {})
 assert parent_meta.get('managed') is True
