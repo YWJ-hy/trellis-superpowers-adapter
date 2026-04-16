@@ -15,6 +15,7 @@ Use a local post-verification replanning discipline adapted from Superpowers, bu
 - Reuse the existing parent task as the source of truth; do not create a parallel parent task for the same feature.
 - Do not execute implementation directly in this command.
 - Do not rewrite completed child tasks into unrelated work; prefer new follow-up child tasks for non-trivial corrective work.
+- Treat child `task.json.status` values `completed` and `done` as already-finished history that corrective execution should skip by default.
 - Do not create any parallel planning workspace, external change-request document, or command state outside `.trellis/tasks/`.
 - Do not modify `.claude/settings.json`, Trellis hooks, or built-in `trellis/*` commands as part of this command.
 - If this feedback reveals reusable project-wide rules, constraints, or debugging lessons, point to `/trellis:update-spec` as a later follow-up rather than changing `.trellis/spec/` during this command.
@@ -61,9 +62,10 @@ Turn post-execution human verification feedback into a Trellis-native delta hand
 6. Child-task handling rules:
    - preserve the history of previously completed child tasks
    - do not repurpose a completed child task into unrelated new scope
+   - use new follow-up child tasks as the default corrective carrier instead of reopening already completed child tasks
    - when feedback maps cleanly to one reviewable delta, create a new child task with `python3 ./.trellis/scripts/task.py create "<title>" --slug <name> --parent <parent-task-dir>`
    - if you create a follow-up child task and its context files are missing, initialize them with `python3 ./.trellis/scripts/task.py init-context <child-task-dir> <dev_type>`
-   - immediately run `python3 .claude/scripts/trellis-sp-task-meta.py <child-task-dir> --role child --phase execute`
+   - immediately run `python3 .claude/scripts/trellis-sp-task-meta.py <child-task-dir> --role child --phase execute --clear-resume`
    - each follow-up child task should narrow one corrective outcome in child `prd.md`, while child `info.md` records `Read First`, likely touched files, sequencing, and verification targets
 7. Decide whether child tasks are necessary.
    - if the corrective work is a truly atomic one-pass fix, a parent-only delta plan in parent `info.md` is acceptable
@@ -76,7 +78,9 @@ Turn post-execution human verification feedback into a Trellis-native delta hand
      - impacted files or code areas
      - ordered follow-up child tasks or parent-only corrective steps
      - verification strategy and stop conditions
-   - once the delta plan is ready, immediately run `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase execute`
+   - determine the first pending corrective child task, skipping any child whose `task.json.status` is already `completed` or `done`
+   - if there is a pending corrective child, keep the parent in a truthful replan-complete state with `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase replan --resume-source replan --resume-child <first-pending-child-dir>`
+   - if corrective work is parent-only, clear the child cursor and keep only the parent-level corrective handoff state with `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase replan --resume-source replan --clear-resume`
 9. End with the correct adapter handoff.
    - the default next step is `/trellis-sp:execute`
    - do not suggest `/trellis:finish-work` from this command

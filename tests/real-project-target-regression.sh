@@ -72,8 +72,11 @@ cat > "$PROJECT_DIR/.trellis/tasks/04-14-child/task.json" <<'EOF'
   "meta": {}
 }
 EOF
-python3 "$PROJECT_DIR/.claude/scripts/trellis-sp-task-meta.py" --repo-root "$PROJECT_DIR" ".trellis/tasks/04-14-parent" --role parent --phase plan >/dev/null || fail 'metadata writer failed for parent task fixture'
-python3 "$PROJECT_DIR/.claude/scripts/trellis-sp-task-meta.py" --repo-root "$PROJECT_DIR" ".trellis/tasks/04-14-child" --role child --phase execute >/dev/null || fail 'metadata writer failed for child task fixture'
+python3 "$PROJECT_DIR/.claude/scripts/trellis-sp-task-meta.py" --repo-root "$PROJECT_DIR" ".trellis/tasks/04-14-parent" --role parent --phase plan --resume-source plan >/dev/null || fail 'metadata writer failed for parent task fixture'
+python3 "$PROJECT_DIR/.claude/scripts/trellis-sp-task-meta.py" --repo-root "$PROJECT_DIR" ".trellis/tasks/04-14-child" --role child --phase execute --clear-resume >/dev/null || fail 'metadata writer failed for child task fixture'
+python3 "$PROJECT_DIR/.claude/scripts/trellis-sp-task-meta.py" --repo-root "$PROJECT_DIR" ".trellis/tasks/04-14-parent" --role parent --phase replan --resume-source replan --resume-child 04-14-child >/dev/null || fail 'metadata writer failed for replan handoff fixture'
+python3 "$PROJECT_DIR/.claude/scripts/trellis-sp-task-meta.py" --repo-root "$PROJECT_DIR" ".trellis/tasks/04-14-parent" --role parent --phase execute --resume-source replan --resume-child 04-14-child >/dev/null || fail 'metadata writer failed for corrective execute fixture'
+python3 "$PROJECT_DIR/.claude/scripts/trellis-sp-task-meta.py" --repo-root "$PROJECT_DIR" ".trellis/tasks/04-14-parent" --role parent --phase execute --clear-resume >/dev/null || fail 'metadata writer failed to clear resume cursor'
 python3 - "$PROJECT_DIR/.trellis/tasks/04-14-parent/task.json" "$PROJECT_DIR/.trellis/tasks/04-14-child/task.json" <<'PY'
 import json
 import sys
@@ -84,12 +87,16 @@ parent_meta = parent.get('meta', {}).get('trellis_sp', {})
 child_meta = child.get('meta', {}).get('trellis_sp', {})
 assert parent_meta.get('managed') is True
 assert parent_meta.get('role') == 'parent'
-assert parent_meta.get('workflow_version') == 1
-assert parent_meta.get('last_phase') == 'plan'
+assert parent_meta.get('workflow_version') == 2
+assert parent_meta.get('last_phase') == 'execute'
+assert 'resume_source' not in parent_meta
+assert 'resume_child' not in parent_meta
 assert child_meta.get('managed') is True
 assert child_meta.get('role') == 'child'
-assert child_meta.get('workflow_version') == 1
+assert child_meta.get('workflow_version') == 2
 assert child_meta.get('last_phase') == 'execute'
+assert 'resume_source' not in child_meta
+assert 'resume_child' not in child_meta
 assert parent.get('children') == ['04-14-child']
 assert child.get('parent') == '04-14-parent'
 PY

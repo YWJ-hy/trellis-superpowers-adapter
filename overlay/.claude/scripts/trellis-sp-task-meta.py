@@ -8,6 +8,8 @@ import json
 import sys
 from pathlib import Path
 
+_UNSET = object()
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -26,7 +28,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--phase",
-        choices=("brainstorm", "specify", "clarify", "plan", "execute"),
+        choices=("brainstorm", "specify", "clarify", "plan", "replan", "execute"),
         required=True,
         help="Latest adapter phase to record.",
     )
@@ -46,8 +48,22 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--workflow-version",
         type=int,
-        default=1,
-        help="Adapter workflow metadata version. Defaults to 1.",
+        default=2,
+        help="Adapter workflow metadata version. Defaults to 2.",
+    )
+    parser.add_argument(
+        "--resume-source",
+        choices=("plan", "replan"),
+        help="Record which adapter step prepared the pending execute handoff.",
+    )
+    parser.add_argument(
+        "--resume-child",
+        help="Record the next child task directory name/path to resume from.",
+    )
+    parser.add_argument(
+        "--clear-resume",
+        action="store_true",
+        help="Clear any stored execute handoff cursor fields.",
     )
     return parser
 
@@ -105,7 +121,17 @@ def save_task_json(task_dir: Path, task_data: dict) -> None:
     task_json.write_text(json.dumps(task_data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
-def update_meta(task_data: dict, *, role: str, phase: str, managed: bool, workflow_version: int) -> bool:
+def update_meta(
+    task_data: dict,
+    *,
+    role: str,
+    phase: str,
+    managed: bool,
+    workflow_version: int,
+    resume_source: str | None | object = _UNSET,
+    resume_child: str | None | object = _UNSET,
+    clear_resume: bool = False,
+) -> bool:
     changed = False
 
     meta = task_data.get("meta")
@@ -132,6 +158,30 @@ def update_meta(task_data: dict, *, role: str, phase: str, managed: bool, workfl
             trellis_sp[key] = value
             changed = True
 
+    if clear_resume:
+        for key in ("resume_source", "resume_child"):
+            if key in trellis_sp:
+                del trellis_sp[key]
+                changed = True
+        return changed
+
+    optional_fields = {
+        "resume_source": resume_source,
+        "resume_child": resume_child,
+    }
+
+    for key, value in optional_fields.items():
+        if value is _UNSET:
+            continue
+        if value is None:
+            if key in trellis_sp:
+                del trellis_sp[key]
+                changed = True
+            continue
+        if trellis_sp.get(key) != value:
+            trellis_sp[key] = value
+            changed = True
+
     return changed
 
 
@@ -149,6 +199,9 @@ def main() -> int:
         phase=args.phase,
         managed=args.managed,
         workflow_version=args.workflow_version,
+        resume_source=args.resume_source if args.resume_source is not None else _UNSET,
+        resume_child=args.resume_child if args.resume_child is not None else _UNSET,
+        clear_resume=args.clear_resume,
     )
     if changed:
         save_task_json(task_dir, task_data)

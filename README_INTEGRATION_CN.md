@@ -131,10 +131,10 @@
 - `/trellis-sp:brainstorm` 在创建 parent task 或发现 adapter 标记缺失/过期时，应立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <task-dir> --role parent --phase brainstorm`。
 - `/trellis-sp:specify` 在结束前，应立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <task-dir> --role parent --phase specify`，保证 active parent task 仍能被识别为 adapter-managed task。
 - `/trellis-sp:plan` 在创建或更新 child tasks 时，`.trellis/.current-task` 仍应保持指向 parent task。
-- `/trellis-sp:plan` 在 planning 进行时，应立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase plan`；当 parent 准备好进入 execution handoff 时，再执行 `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase execute`。
+- `/trellis-sp:plan` 在 planning 进行时，应立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase plan`；当 parent 准备好进入 execution handoff 时，应保持 `last_phase="plan"` 的真实语义，并额外记录 `resume_source=plan`，而不是提前写成 `execute`。
 - `/trellis-sp:plan` 还应在 parent 缺失 `implement.jsonl` / `check.jsonl` / `debug.jsonl` 时，先执行 `python3 ./.trellis/scripts/task.py init-context <parent-task-dir> <dev_type>` 初始化父任务上下文，再用 `python3 ./.trellis/scripts/task.py add-context ...` 仅补齐 Trellis-native preload context，例如相关 spec、共享 guides/docs，以及确有必要时极少量可复用 code-pattern reference。likely touched 的业务代码文件应写入 `info.md`，不应通过 jsonl 预载。
-- `/trellis-sp:plan` 对每个新建或更新的 child task，都应在缺失 jsonl 时先执行 `python3 ./.trellis/scripts/task.py init-context <child-task-dir> <dev_type>`，再立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <child-task-dir> --role child --phase execute`；child `info.md` 还应显式记录 `Read First`、likely touched files、实现顺序与验证目标，供运行时按需读取代码。
-- `/trellis-sp:execute` 在执行每个 child task 前，应先把 `.trellis/.current-task` 切到该 child；所有 child 完成后，再切回 parent task 做最终 parent-level `check`。
+- `/trellis-sp:plan` 对每个新建或更新的 child task，都应在缺失 jsonl 时先执行 `python3 ./.trellis/scripts/task.py init-context <child-task-dir> <dev_type>`，再立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <child-task-dir> --role child --phase execute --clear-resume`；child `info.md` 还应显式记录 `Read First`、likely touched files、实现顺序与验证目标，供运行时按需读取代码。
+- `/trellis-sp:execute` 在执行每个 child task 前，应先把 `.trellis/.current-task` 切到该 child；对于 `task.json.status` 已经是 `completed` 或 `done` 的 child，应默认跳过；若存在 `resume_child`，则应优先从该待执行 child 恢复；所有 child 完成后，再切回 parent task 做最终 parent-level `check`。
 - `/trellis:finish-work` 仍然是 Trellis 原生的 finish / handoff 节点；在 adapter lane 里，只能在 `/trellis-sp:execute` 恢复 parent task 并完成 parent-level final `check` 之后进入。
 - child task 只是 staged execution unit，不能单独视为 ready-for-finish-work。
 - 在 handoff 到 `/trellis:finish-work` 之前，应明确判断这次流程是否暴露了值得通过 `/trellis:update-spec` 沉淀的通用规则、约束或调试经验。
@@ -164,6 +164,7 @@
 - 仅在需求变更时回写 parent `prd.md`
 - 在 parent `info.md` 里写 delta handling plan
 - 需要 reviewable staged fix 时优先新增 follow-up child task
+- replan 完成后应把 parent 保持在真实的 `last_phase=replan` 状态；如果 session 在 `/trellis-sp:execute` 前终止，下一次应从 corrective execute 恢复，而不是把这段状态压扁成普通 execute-ready
 
 推荐直接用这种输入方式：
 
@@ -311,7 +312,9 @@ adapter 运行时用于识别任务类型的标记放在 `task.json.meta.trellis
 - `managed`：是否为 adapter 管理任务
 - `role`：`parent` 或 `child`
 - `workflow_version`：当前 metadata 版本
-- `last_phase`：最近一次 adapter 阶段，如 `brainstorm`、`specify`、`plan`、`execute`
+- `last_phase`：最近一次 adapter 阶段，如 `brainstorm`、`specify`、`plan`、`replan`、`execute`
+- `resume_source`：当前待执行或正在恢复的 execute 波次来自 `plan` 还是 `replan`
+- `resume_child`：下一个应恢复的 child task；若为空则表示 parent-only corrective work
 
 adapter 会安装 `.claude/scripts/trellis-sp-task-meta.py`，用于在不修改 Trellis core script 的前提下写入并刷新这些字段。
 

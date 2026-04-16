@@ -33,11 +33,15 @@ Preserve disciplined staged execution while routing all substantive work through
    - review parent `info.md` or other task-local plan context if present
    - if the workflow was planned as atomic execution, confirm the parent task has ordered child tasks and that each atomic child task has `prd.md`, `implement.jsonl`, and `check.jsonl`
    - confirm each child task `info.md` is sufficient for runtime reading guidance when staged execution is expected
+   - read parent `task.json.meta.trellis_sp` when present, including `workflow_version`, `last_phase`, `resume_source`, and `resume_child`
    - if task context is incomplete, stale, or has critical gaps, stop and send the user back to `/trellis-sp:plan`
 2. Announce that you are using a local execution discipline adapted from Superpowers, but Trellis subagents remain the execution engine.
 3. Use this execution discipline:
    - review the task-local plan critically before each stage
    - execute ordered atomic child tasks progressively rather than treating the whole task as one opaque implementation pass
+   - skip any child task whose `task.json.status` is already `completed` or `done`
+   - treat `last_phase="replan"` as a truthful replan-complete state, not as proof that corrective execution already started
+   - if `resume_source="replan"`, treat the current run as corrective execution and do not reopen already completed child tasks by default
    - stop on blockers instead of guessing
    - require review checkpoints before advancing
 4. Route real work only through Trellis-compatible subagent types:
@@ -50,7 +54,14 @@ Preserve disciplined staged execution while routing all substantive work through
    - parent sequencing and child-task plan remain in parent `info.md` if present
    - each atomic child task carries its own narrowed `prd.md`, `info.md`, and task-local jsonl files
    - do not create or depend on `docs/superpowers/plans/...`
-6. Atomic child-task execution loop:
+6. Build the execution queue before touching code:
+   - start from the parent task `children` list as the ordered baseline
+   - resolve each child task and filter out any child whose `task.json.status` is `completed` or `done`
+   - if `workflow_version >= 2` and `resume_child` is still pending, resume from that child first
+   - if `resume_child` is missing, stale, or already completed, fall back to the first pending child
+   - if there is no pending child, treat the run as parent-only remaining corrective work or move directly to the parent-level final `check`
+   - once execution actually begins, immediately run `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase execute --resume-source <plan|replan> --resume-child <next-pending-child-dir>`
+7. Atomic child-task execution loop:
    - execute child tasks in their planned order
    - before executing each child task, run `python3 ./.trellis/scripts/task.py start <child-task-dir>` so `.trellis/.current-task` points to that child
    - before running `implement`, review the child `prd.md`, child `info.md`, parent `prd.md`, and parent `info.md`
@@ -60,20 +71,22 @@ Preserve disciplined staged execution while routing all substantive work through
    - after each child implementation pass, run Trellis `check`
    - if `check` identifies issues, use `debug` or return to `implement` as appropriate for that same child task
    - do not advance to the next child while verification issues remain in the current one
-7. Review checkpoints are mandatory:
+   - after each child reaches a clean `check`, update the parent resume cursor to the next pending child; if no pending child remains, clear the resume cursor with `--clear-resume`
+8. Review checkpoints are mandatory:
    - after each atomic child task reaches a clean `check` result, pause long enough to summarize what changed, what was verified, and whether any new plan gaps were revealed
    - if execution uncovers a missing requirement or a decomposition mistake, update the parent or child Trellis task artifacts before continuing
-8. Final verification must go through Trellis `check`.
+9. Final verification must go through Trellis `check`.
    - This is required so Trellis `SubagentStop(check)` behavior, including Ralph Loop, can apply to this route again.
    - After all atomic child tasks complete, restore `.trellis/.current-task` to the parent task and then run a parent-level final `check` for cross-child integration and overall requirements coverage.
    - If a finish-like final pass is needed, use Trellis `check` semantics rather than introducing an external finishing flow.
-9. Knowledge capture and finish bridge rules:
+   - Once the parent-level final `check` passes cleanly, clear any remaining execute handoff cursor fields on the parent metadata.
+10. Knowledge capture and finish bridge rules:
    - do not treat any child task as individually ready for `/trellis:finish-work`
    - only the parent task may hand off to `/trellis:finish-work`
    - that handoff happens only after the parent-level final `check` passes cleanly
    - before handing off to `/trellis:finish-work`, explicitly decide whether this workflow revealed reusable rules, constraints, or debugging lessons that should be promoted via `/trellis:update-spec`
    - if the workflow produced meaningful staged-delivery decisions or review findings worth preserving beyond the task artifacts, explicitly recommend `/trellis:record-session` after finish-work
-10. End by reporting:
+11. End by reporting:
    - which atomic child tasks completed
    - whether any blockers remain
    - whether the parent-level final `check` passed
@@ -89,11 +102,12 @@ For each atomic child task, prefer a checklist like this before moving on:
 - [ ] child task `implement.jsonl` and `check.jsonl` still point to the right Trellis-native preload context
 - [ ] `implement` completed the intended atomic scope only
 - [ ] `check` passed, or `debug` was used and `check` passed afterward
+- [ ] the parent resume cursor now points at the next pending child, or has been cleared when no pending child remains
 - [ ] a short checkpoint summary was recorded before advancing to the next child
 
 Before declaring the whole workflow done:
 
-- [ ] every ordered child task completed
+- [ ] every ordered child task completed or was intentionally skipped because its status was already `completed` / `done`
 - [ ] no child task is carrying unresolved verification issues
 - [ ] parent-level final `check` passed
 - [ ] any reusable project-wide rule or lesson has been evaluated for `/trellis:update-spec`

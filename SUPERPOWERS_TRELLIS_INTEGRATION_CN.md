@@ -295,9 +295,9 @@ flowchart TD
 - 在本地应用受 Superpowers 启发的 planning discipline
 - 当任务过大、不适合单次 reviewable pass 时，会先拆成原子子任务
 - planning 期间 `.trellis/.current-task` 仍保持 parent task，不因为创建 child task 而永久切走
-- planning 进行时，应立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase plan`；当 parent 准备进入 execution handoff 时，再执行 `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase execute`
+- planning 进行时，应立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase plan`；当 parent 准备进入 execution handoff 时，应保持 `last_phase="plan"` 的真实语义，并额外记录 `resume_source=plan`，而不是提前写成 `execute`
 - 如果 parent 缺失 `implement.jsonl` / `check.jsonl` / `debug.jsonl`，应先执行 `python3 ./.trellis/scripts/task.py init-context <parent-task-dir> <dev_type>` 初始化父任务上下文，再用 `python3 ./.trellis/scripts/task.py add-context ...` 仅补齐 Trellis-native preload context，例如相关 spec、共享 guides/docs，以及确有必要时极少量可复用 code-pattern reference；likely touched 的业务代码文件应写入 `info.md`，而不是通过 jsonl 预载
-- 每个新建或更新的 child task，如缺失 jsonl，也应先执行 `python3 ./.trellis/scripts/task.py init-context <child-task-dir> <dev_type>`，再立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <child-task-dir> --role child --phase execute`；同时 child `info.md` 应显式记录 `Read First`、likely touched files、实现顺序与验证目标，供运行时按需读取代码
+- 每个新建或更新的 child task，如缺失 jsonl，也应先执行 `python3 ./.trellis/scripts/task.py init-context <child-task-dir> <dev_type>`，再立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <child-task-dir> --role child --phase execute --clear-resume`；同时 child `info.md` 应显式记录 `Read First`、likely touched files、实现顺序与验证目标，供运行时按需读取代码
 - 输出的是 parent/child task-local implementation contract，而不是外部 plan workspace
 - 产物收敛到：
   - parent task `prd.md`
@@ -317,7 +317,7 @@ flowchart TD
 - 使用 `/trellis-sp:execute`
 - 在本地应用受 Superpowers 启发的 execution discipline
 - 如果计划阶段已经拆出原子子任务，则按 child task 顺序渐进执行，而不是把整个任务当作一次性 implementation pass
-- 执行每个 child task 前，先把 `.trellis/.current-task` 切到该 child；所有 child 完成后，再切回 parent task 做最终校验
+- 执行每个 child task 前，先把 `.trellis/.current-task` 切到该 child；对 `task.json.status` 已是 `completed` 或 `done` 的 child 默认跳过；若存在 `resume_child`，则优先从该待执行 child 恢复；所有 child 完成后，再切回 parent task 做最终校验
 - 真实执行并不交给外部 plugin，而是路由到 Trellis-compatible subagent：
   - `research`
   - `implement`
@@ -345,7 +345,7 @@ flowchart TD
 4. 仅在需求变更时回写 parent `prd.md`
 5. 在 parent `info.md` 中追加一段 delta handling plan
 6. 如果这轮返工已经形成新的 reviewable work unit，就新增 follow-up child task，而不是重写已完成 child task
-7. 再回到 `/trellis-sp:execute`，按正常 Trellis-compatible execution/checkpoint/final-check 流程完成修正
+7. 再回到 `/trellis-sp:execute`，按正常 Trellis-compatible execution/checkpoint/final-check 流程完成修正；replan 完成后 parent 应停留在真实的 `last_phase=replan` 状态，直到 corrective execute 真正开始
 
 这个节点的本质不是 reopen 一个新工作流，而是：
 
@@ -470,7 +470,7 @@ cd trellis-superpowers-adapter
 - `/trellis-sp:plan` 不会把 plan 默认落到外部 `docs/superpowers/plans/...`，而是在需要时拆成原子子任务，并准备 Trellis parent/child task-local execution contract；jsonl 仅承载 Trellis-native preload context，运行时代码读取指引写入 `info.md`
 - `/trellis-sp:execute` 不把 Superpowers 当作直接执行引擎，而是按子任务顺序推进，并把真正的实现/检查/调试路由到 Trellis-compatible subagent；执行 child task 时应先审阅 child/parent 的 `prd.md` 与 `info.md`，再按 `Read First` 和 likely touched files 在运行时读取代码
 - `/trellis:start` 在 current-task 与 manual-selection 两种恢复入口下，都应先读 `task.json.meta.trellis_sp` 再分流：parent task 恢复时读取 parent `prd.md` 与 `info.md`；child task 恢复时读取 child `prd.md`、parent `prd.md`、parent `info.md`，先完成当前 child loop，再回到 parent final `check`
-- 运行时用于识别任务身份的 metadata 位于 `task.json.meta.trellis_sp`；推荐字段为 `managed`、`role`、`workflow_version`、`last_phase`，并由 `.claude/scripts/trellis-sp-task-meta.py` 负责写入与刷新
+- 运行时用于识别任务身份的 metadata 位于 `task.json.meta.trellis_sp`；推荐字段为 `managed`、`role`、`workflow_version`、`last_phase`、`resume_source`、`resume_child`，并由 `.claude/scripts/trellis-sp-task-meta.py` 负责写入与刷新
 - 当前 adapter **不会**把执行阶段直接托管给 Trellis `dispatch` agent。原因是：dispatch 代表的是更完整的 Trellis pipeline orchestration，不只是调用 implement/check，还会进一步依赖 `task.json.next_action`、finish/create-pr 等更深层的 phase 语义。对于 adapter 来说，现在先保持“执行桥接层”定位更稳：既能复用 Trellis subagent、hook 注入和 Ralph Loop，又不会过早把 adapter 和完整 dispatch pipeline 绑定在一起。
 - `/trellis-sp:replan` 不会新开一条平行父任务工作流；它只是在同一个 parent task 上，把人审反馈转成 delta handling plan，再回到正常的 adapter execution 闭环。
 - `research` 在文档语义上仍然是 Trellis 标准 planning 步骤，但运行时采用按需触发：context 足够时可跳过，context 缺失时必须补齐
