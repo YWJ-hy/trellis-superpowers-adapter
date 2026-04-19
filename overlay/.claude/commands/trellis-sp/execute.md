@@ -29,7 +29,7 @@ Preserve disciplined staged execution while routing all substantive work through
 1. Validate execution readiness:
    - confirm there is an active task
    - confirm `.trellis/.current-task` resolves correctly
-   - confirm the active parent task has `prd.md`, `implement.jsonl`, and `check.jsonl`
+   - confirm the active parent task has `prd.md`, `trace.md`, `implement.jsonl`, and `check.jsonl`
    - review parent `info.md` or other task-local plan context if present
    - if the workflow was planned as atomic execution, confirm the parent task has ordered child tasks and that each atomic child task has `prd.md`, `implement.jsonl`, and `check.jsonl`
    - confirm each child task `info.md` is sufficient for runtime reading guidance when staged execution is expected
@@ -64,20 +64,25 @@ Preserve disciplined staged execution while routing all substantive work through
 7. Atomic child-task execution loop:
    - execute child tasks in their planned order
    - before executing each child task, run `python3 ./.trellis/scripts/task.py start <child-task-dir>` so `.trellis/.current-task` points to that child
-   - before running `implement`, review the child `prd.md`, child `info.md`, parent `prd.md`, and parent `info.md`
+   - before running `implement`, review the child `prd.md`, child `info.md`, and the child `Relevant Parent Context Slice`
+   - read full parent `prd.md`, `trace.md`, or `info.md` only when the child slice is ambiguous, contradictory, or explicitly cites a parent anchor that must be inspected
    - if child `info.md` includes `Read First`, read those files first as runtime entrypoints
    - if child `info.md` includes `Likely Touched Files`, treat them as runtime candidate files to inspect as needed rather than preloaded jsonl context
    - for each atomic child task, use its local Trellis preload context plus runtime reading guidance and run `implement`
-   - after each child implementation pass, run Trellis `check`
-   - if `check` identifies issues, use `debug` or return to `implement` as appropriate for that same child task
+   - after each child implementation pass, run a spec-compliance review against that child's inherited `D-###`, `FR-###`, and `SC-###` rows before running broader code-quality verification
+   - for frontend tasks, the spec-compliance review must verify that explicitly required UI controls/components are preserved with their source requirement semantics; a named table, upload control, editor, tab, drawer, or modal is not satisfied by a generic substitute unless the requirement was reviewed and changed
+   - after spec-compliance passes, run Trellis `check`
+   - if spec-compliance or `check` identifies issues, use `debug` or return to `implement` as appropriate for that same child task
    - do not advance to the next child while verification issues remain in the current one
    - after each child reaches a clean `check`, update the parent resume cursor to the next pending child; if no pending child remains, clear the resume cursor with `--clear-resume`
 8. Review checkpoints are mandatory:
    - after each atomic child task reaches a clean `check` result, pause long enough to summarize what changed, what was verified, and whether any new plan gaps were revealed
+   - update parent `trace.md` so the `Proof Log` reflects which inherited `D-###`, `FR-###`, and `SC-###` rows are now proven, still pending, or blocked
    - if execution uncovers a missing requirement or a decomposition mistake, update the parent or child Trellis task artifacts before continuing
 9. Final verification must go through Trellis `check`.
    - This is required so Trellis `SubagentStop(check)` behavior, including Ralph Loop, can apply to this route again.
    - After all atomic child tasks complete, restore `.trellis/.current-task` to the parent task and then run a parent-level final `check` for cross-child integration and overall requirements coverage.
+   - use the parent final pass to close every row in `trace.md`; a requirement-detail row is not complete until it is marked proven, intentionally deferred, or superseded by replan with evidence
    - If a finish-like final pass is needed, use Trellis `check` semantics rather than introducing an external finishing flow.
    - Once the parent-level final `check` passes cleanly, clear any remaining execute handoff cursor fields on the parent metadata.
 10. Knowledge capture and finish bridge rules:

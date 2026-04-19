@@ -138,7 +138,15 @@ In Claude Code within that project, the added workflow is:
 /trellis:finish-work
 ```
 
-After `/trellis-sp:brainstorm`, the default next step is `/trellis-sp:specify`. Use `/trellis-sp:clarify` only when high-value ambiguities remain; otherwise continue to `/trellis-sp:plan` once the PRD is planning-ready.
+After `/trellis-sp:brainstorm`, the default next step is `/trellis-sp:specify`. Use `/trellis-sp:clarify` only when high-value ambiguities remain; otherwise continue to `/trellis-sp:plan` once the PRD is planning-ready and its written `Spec Review Gate` allows planning to proceed.
+
+The adapter now uses a normalization-first, memo-aware requirement flow:
+- parent `normalize.md` captures a source-faithful requirement normalization ledger before formal specification
+- parent `memorandum.md` records deferred, excluded, conflicting, pending, or externally blocked items that must not silently disappear or enter committed scope accidentally
+- parent `prd.md` remains the reviewed requirement contract for planning and execution
+- parent `trace.md` maps preserved details and requirement IDs to owners and proof points
+- parent/child `info.md` carry execution-specific guidance and proof obligations
+- completion is not considered truthful until parent final verification closes the relevant rows in `trace.md`
 
 When a parent task has already gone through execution and later human validation finds implementation deviation or changed requirements, use `/trellis-sp:replan` to update the same parent task, write a delta handling plan, and then return to `/trellis-sp:execute`.
 
@@ -149,12 +157,15 @@ Current-task rules in this adapter flow:
 - `/trellis:start` is still the recommended session entrypoint, but the adapter commands must manage Trellis task state correctly even when they are invoked directly.
 - `/trellis-sp:brainstorm` should ensure there is a parent task and set `.trellis/.current-task` to that parent before handing off to `/trellis-sp:specify`.
 - `/trellis-sp:brainstorm` should immediately run `python3 .claude/scripts/trellis-sp-task-meta.py <task-dir> --role parent --phase brainstorm` when a parent task is created or when the adapter marker is missing or stale.
+- `/trellis-sp:brainstorm` should create or refresh parent `normalize.md` and `memorandum.md` before its question loop so raw source material is normalized into task-local requirement facts and non-committed items are captured before formal specification begins.
 - `/trellis-sp:specify` should immediately run `python3 .claude/scripts/trellis-sp-task-meta.py <task-dir> --role parent --phase specify` before finishing so the active parent task remains adapter-identifiable.
+- `/trellis-sp:specify` should preserve non-obvious implementation-relevant detail in `## Critical Details to Preserve`, including explicitly named frontend UI controls/components such as tables, inputs, upload controls, tabs, drawers, and editors, while keeping deferred, excluded, pending, or blocked memorandum items out of committed PRD scope unless promoted.
 - `/trellis-sp:plan` should keep the parent task as the current task while creating or updating child tasks.
 - `/trellis-sp:plan` should immediately run `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase plan` while planning is active, and when the parent is ready for execution handoff it should keep `last_phase="plan"` truthful while recording `resume_source=plan` rather than collapsing early into `execute`.
 - `/trellis-sp:plan` should also initialize missing parent `implement.jsonl` / `check.jsonl` / `debug.jsonl` with `python3 ./.trellis/scripts/task.py init-context <parent-task-dir> <dev_type>`, then use `python3 ./.trellis/scripts/task.py add-context ...` only for Trellis-native preload context such as relevant specs, shared guides/docs, and minimal reusable code-pattern references. Likely touched business code files should be recorded in `info.md`, not preloaded through jsonl.
-- `/trellis-sp:plan` should initialize missing child jsonl files with `python3 ./.trellis/scripts/task.py init-context <child-task-dir> <dev_type>` before it immediately runs `python3 .claude/scripts/trellis-sp-task-meta.py <child-task-dir> --role child --phase execute --clear-resume` for every child task it creates or refines, and each child `info.md` should capture `Read First`, likely touched files, sequencing, and verification targets for runtime reading.
-- `/trellis-sp:execute` should switch `.trellis/.current-task` to each child task before running child-local `implement` / `check` / `debug`, skip children whose `task.json.status` is already `completed` or `done`, respect `resume_child` when resuming a pending execute wave, and then restore the parent task before the final parent-level `check`.
+- `/trellis-sp:plan` should create parent `trace.md` as the requirement-to-proof spine, mapping `D-###`, `FR-###`, and `SC-###` rows to child-task owners and verification points.
+- `/trellis-sp:plan` should initialize missing child jsonl files with `python3 ./.trellis/scripts/task.py init-context <child-task-dir> <dev_type>` before it immediately runs `python3 .claude/scripts/trellis-sp-task-meta.py <child-task-dir> --role child --phase execute --clear-resume` for every child task it creates or refines, and each child `info.md` should capture `Read First`, likely touched files, sequencing, verification targets, and proof obligations for runtime reading.
+- `/trellis-sp:execute` should switch `.trellis/.current-task` to each child task before running child-local `implement` / `check` / `debug`, skip children whose `task.json.status` is already `completed` or `done`, respect `resume_child` when resuming a pending execute wave, run spec-compliance review against inherited requirement IDs before broader code-quality review, use child-local `Relevant Parent Context Slice` instead of full parent docs by default, and then restore the parent task before the final parent-level `check`.
 - `/trellis:finish-work` remains the Trellis-native finish and handoff step. In the adapter lane, it should only happen after `/trellis-sp:execute` restores the parent task and the parent-level final `check` has passed cleanly.
 - `/trellis-sp:replan` is the post-verification re-entry point for adapter-managed parent tasks. It should reuse the same parent task, classify feedback as implementation deviation / requirement changed / mixed, update parent `prd.md` only when requirements changed, append the corrective delta plan to parent `info.md`, prefer new follow-up child tasks over rewriting completed child tasks, and leave the parent in a truthful `last_phase=replan` state until corrective execution actually starts.
 - A good `/trellis-sp:replan` input should explicitly say: current result, expected result, whether the requirement itself changed, and what must stay untouched.
@@ -235,6 +246,7 @@ A practical minimum template is:
 - likely touched files
 
 ### Child `info.md`
+- `Relevant Parent Context Slice`
 - `Read First`
 - likely touched files
 - suggested implementation sequence

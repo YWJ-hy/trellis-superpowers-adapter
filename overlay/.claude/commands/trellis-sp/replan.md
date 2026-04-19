@@ -11,7 +11,9 @@ Use a local post-verification replanning discipline adapted from Superpowers, bu
 
 - Require an active adapter-managed Trellis parent task. If `.trellis/.current-task` points to a managed child task, resolve its parent and restore `.trellis/.current-task` to that parent before continuing. If no adapter-managed parent task can be resolved, stop and tell the user to activate the parent task first.
 - This command is only for work that has already gone through `/trellis-sp:execute` and later received post-execution human verification feedback or changed requirements.
-- Treat the parent task `prd.md` and `info.md` as the only task-level sources of truth.
+- Treat the parent task `prd.md`, `trace.md`, and `info.md` as the authoritative reviewed execution artifacts.
+- When requirement changes are involved, treat parent `normalize.md` as the source-faithful normalization ledger that must be refreshed before the reviewed PRD is re-formalized.
+- Treat parent `memorandum.md` as the memo of deferred, excluded, conflicting, pending, blocked, resolved, or promoted items, and refresh it when requirement status changes materially.
 - Reuse the existing parent task as the source of truth; do not create a parallel parent task for the same feature.
 - Do not execute implementation directly in this command.
 - Do not rewrite completed child tasks into unrelated work; prefer new follow-up child tasks for non-trivial corrective work.
@@ -51,12 +53,18 @@ Turn post-execution human verification feedback into a Trellis-native delta hand
    - update the parent `info.md` with the verification findings, impacted scope, corrective plan, and verification targets
    - if the corrective work is reviewable or spans multiple files, prefer ordered follow-up child tasks instead of rewriting completed child tasks
 4. Branch rules for `requirement changed`:
-   - update the parent `prd.md` first
+   - update the affected sections of parent `memorandum.md` first when item status changes, especially for deferred, excluded, pending, blocked, resolved, or promoted items
+   - update the affected sections of parent `normalize.md` next so the source-faithful requirement ledger reflects the new requirement state
+   - then update the parent `prd.md`
+   - update the parent `trace.md` next so changed or newly introduced `D-###`, `FR-###`, and `SC-###` rows remain historically auditable
    - reuse `/trellis-sp:specify` and `/trellis-sp:clarify` discipline on only the affected sections such as Goal, Requirements, Success Criteria, Out of Scope, or Clarifications
    - then update the parent `info.md` with the execution delta plan and verification strategy
    - create follow-up child tasks only for the new or changed execution units
 5. Branch rules for `mixed`:
-   - update the parent `prd.md` for the changed requirement portion first
+   - update the changed requirement portion of parent `memorandum.md` first when memo state must change
+   - update the changed requirement portion of parent `normalize.md` next
+   - update the parent `prd.md` for the changed requirement portion next
+   - update the parent `trace.md` so both changed requirements and prior proof state remain explicit
    - then record the remaining corrective execution delta in the parent `info.md`
    - create follow-up child tasks for any non-trivial implementation correction that should stay reviewable
 6. Child-task handling rules:
@@ -66,12 +74,15 @@ Turn post-execution human verification feedback into a Trellis-native delta hand
    - when feedback maps cleanly to one reviewable delta, create a new child task with `python3 ./.trellis/scripts/task.py create "<title>" --slug <name> --parent <parent-task-dir>`
    - if you create a follow-up child task and its context files are missing, initialize them with `python3 ./.trellis/scripts/task.py init-context <child-task-dir> <dev_type>`
    - immediately run `python3 .claude/scripts/trellis-sp-task-meta.py <child-task-dir> --role child --phase execute --clear-resume`
-   - each follow-up child task should narrow one corrective outcome in child `prd.md`, while child `info.md` records `Read First`, likely touched files, sequencing, and verification targets
+   - each follow-up child task should narrow one corrective outcome in child `prd.md`, while child `info.md` records `Relevant Parent Context Slice`, `Read First`, likely touched files, sequencing, and verification targets
 7. Decide whether child tasks are necessary.
    - if the corrective work is a truly atomic one-pass fix, a parent-only delta plan in parent `info.md` is acceptable
    - otherwise prefer ordered follow-up child tasks so `/trellis-sp:execute` can rerun the correction with normal review checkpoints
 8. Write the delta handling plan back into Trellis task artifacts only.
+   - update the parent `memorandum.md` only when the branch is `requirement changed` or `mixed`
+   - update the parent `normalize.md` only when the branch is `requirement changed` or `mixed`
    - update the parent `prd.md` only when the branch is `requirement changed` or `mixed`
+   - update the parent `trace.md` without silently overwriting prior proof history; preserve older rows and mark them changed, superseded, or still authoritative as appropriate
    - update the parent `info.md` with:
      - verification findings
      - branch classification

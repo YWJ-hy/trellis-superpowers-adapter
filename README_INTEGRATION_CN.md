@@ -118,7 +118,15 @@
 /trellis:record-session
 ```
 
-在 `/trellis-sp:brainstorm` 之后，默认下一步是 `/trellis-sp:specify`。只有在仍然存在高价值歧义时才进入 `/trellis-sp:clarify`；否则当 PRD 已经达到 planning-ready 时，直接继续到 `/trellis-sp:plan`。
+在 `/trellis-sp:brainstorm` 之后，默认下一步是 `/trellis-sp:specify`。只有在仍然存在高价值歧义时才进入 `/trellis-sp:clarify`；否则当 PRD 已经达到 planning-ready，且书面 `Spec Review Gate` 明确允许进入 planning 时，才继续到 `/trellis-sp:plan`。
+
+adapter 现在采用 normalization-first + memorandum + trace 的三段式要求：
+- parent `normalize.md` 先做 source-faithful 的需求精细归一化
+- parent `memorandum.md` 记录 deferred / excluded / conflicting / pending / blocked 项，避免它们被误写进当前 committed scope
+- parent `prd.md` 仍是 reviewed planning contract
+- parent `trace.md` 负责把保留细节和需求 ID 映射到 owner / proof point
+- parent/child `info.md` 负责执行指引与 proof obligations
+- 只有在 parent final verification 关闭 `trace.md` 对应条目后，完成状态才算真实成立
 
 如果 parent task 已经执行过一轮，而人工验收后来发现实现偏差或需求变更，应优先使用 `/trellis-sp:replan`，在同一个 parent task 上写出 delta handling plan，然后再返回 `/trellis-sp:execute`。
 
@@ -129,12 +137,16 @@
 - `/trellis:start` 仍然是推荐入口，但 adapter 命令即使被直接调用，也必须自己把 Trellis task 状态处理正确。
 - `/trellis-sp:brainstorm` 应保证存在 parent task，并在进入 `/trellis-sp:specify` 前把 `.trellis/.current-task` 设为 parent task。
 - `/trellis-sp:brainstorm` 在创建 parent task 或发现 adapter 标记缺失/过期时，应立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <task-dir> --role parent --phase brainstorm`。
+- `/trellis-sp:brainstorm` 还应在 question loop 之前创建或刷新 parent `normalize.md`，把 raw source 先解析成 task-local 的 normalized requirement ledger。
+- `/trellis-sp:brainstorm` 还应创建或刷新 parent `memorandum.md`，把原需求与当前代码/接口冲突、用户暂不做/不考虑、待确认、外部阻塞等事项记录下来，避免它们在 formalization 前丢失。
 - `/trellis-sp:specify` 在结束前，应立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <task-dir> --role parent --phase specify`，保证 active parent task 仍能被识别为 adapter-managed task。
+- `/trellis-sp:specify` 还应把容易在抽象化过程中丢失的细节写入 `Critical Details to Preserve`；对于前端任务，源需求里显式点名的 UI 控件/组件（如 table、input、upload、editor、tab、drawer、modal）必须按原语义保留，不能被泛化掉。
 - `/trellis-sp:plan` 在创建或更新 child tasks 时，`.trellis/.current-task` 仍应保持指向 parent task。
 - `/trellis-sp:plan` 在 planning 进行时，应立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase plan`；当 parent 准备好进入 execution handoff 时，应保持 `last_phase="plan"` 的真实语义，并额外记录 `resume_source=plan`，而不是提前写成 `execute`。
 - `/trellis-sp:plan` 还应在 parent 缺失 `implement.jsonl` / `check.jsonl` / `debug.jsonl` 时，先执行 `python3 ./.trellis/scripts/task.py init-context <parent-task-dir> <dev_type>` 初始化父任务上下文，再用 `python3 ./.trellis/scripts/task.py add-context ...` 仅补齐 Trellis-native preload context，例如相关 spec、共享 guides/docs，以及确有必要时极少量可复用 code-pattern reference。likely touched 的业务代码文件应写入 `info.md`，不应通过 jsonl 预载。
-- `/trellis-sp:plan` 对每个新建或更新的 child task，都应在缺失 jsonl 时先执行 `python3 ./.trellis/scripts/task.py init-context <child-task-dir> <dev_type>`，再立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <child-task-dir> --role child --phase execute --clear-resume`；child `info.md` 还应显式记录 `Read First`、likely touched files、实现顺序与验证目标，供运行时按需读取代码。
-- `/trellis-sp:execute` 在执行每个 child task 前，应先把 `.trellis/.current-task` 切到该 child；对于 `task.json.status` 已经是 `completed` 或 `done` 的 child，应默认跳过；若存在 `resume_child`，则应优先从该待执行 child 恢复；所有 child 完成后，再切回 parent task 做最终 parent-level `check`。
+- `/trellis-sp:plan` 还应创建 parent `trace.md`，把 `D-###` / `FR-###` / `SC-###` 条目映射到 owner 与 proof point，形成需求到验证的追踪脊柱。
+- `/trellis-sp:plan` 对每个新建或更新的 child task，都应在缺失 jsonl 时先执行 `python3 ./.trellis/scripts/task.py init-context <child-task-dir> <dev_type>`，再立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <child-task-dir> --role child --phase execute --clear-resume`；child `info.md` 还应显式记录 `Read First`、likely touched files、实现顺序、验证目标与 proof obligations，供运行时按需读取代码。
+- `/trellis-sp:execute` 在执行每个 child task 前，应先把 `.trellis/.current-task` 切到该 child；对于 `task.json.status` 已经是 `completed` 或 `done` 的 child，应默认跳过；若存在 `resume_child`，则应优先从该待执行 child 恢复；执行顺序上先做 spec-compliance review，再进入更广义的 code-quality / `check`；所有 child 完成后，再切回 parent task 做最终 parent-level `check`。
 - `/trellis:finish-work` 仍然是 Trellis 原生的 finish / handoff 节点；在 adapter lane 里，只能在 `/trellis-sp:execute` 恢复 parent task 并完成 parent-level final `check` 之后进入。
 - child task 只是 staged execution unit，不能单独视为 ready-for-finish-work。
 - 在 handoff 到 `/trellis:finish-work` 之前，应明确判断这次流程是否暴露了值得通过 `/trellis:update-spec` 沉淀的通用规则、约束或调试经验。

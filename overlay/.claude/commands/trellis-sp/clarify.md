@@ -112,8 +112,11 @@ Scan the active task `prd.md` across these categories and mark each one internal
    - actor or flow changes → update the relevant user story or acceptance scenario
    - data concept changes → update `### Key Entities`
    - measurable quality constraints → update `## Success Criteria`
+   - nuanced implementation-relevant detail that would be easy to lose later → update `## Critical Details to Preserve`
    - edge-case answers → update `### Edge Cases`
    - terminology choices → normalize the chosen term throughout the PRD
+   - keep existing `D-###`, `FR-###`, and `SC-###` identifiers stable whenever possible; extend them rather than renumbering prior rows
+   - if a clarification materially changes documented behavior, defaults, exclusions, preserved critical details, or named frontend UI controls/components, update `## Spec Review Gate` to reflect that the written PRD needs re-review before planning
 10. After each update, run a quick validation pass:
    - one clarification bullet per accepted answer
    - no contradictory earlier statement remains

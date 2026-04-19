@@ -13,6 +13,7 @@ Use a local planning discipline adapted from Superpowers, but keep Trellis task 
 - Keep the active parent task identifiable in `task.json` under `meta.trellis_sp`; ensure `managed=true`, `role="parent"`, `workflow_version=2`, and keep `last_phase` aligned with the latest adapter step.
 - Treat the active task `prd.md` as the requirements contract, including any structure added by `/trellis-sp:specify` or `/trellis-sp:clarify`.
 - Formal research in this command must use the Trellis research agent with explicit `subagent_type: "research"`.
+- Child tasks must be executable child-first. Do not require child `implement` / `check` agents to read full parent `prd.md`, `trace.md`, or `info.md` by default; package only the relevant parent context slice into child artifacts.
 - Write the task-level implementation contract into the active task, not into `docs/superpowers/plans/...` or any other external planning workspace.
 - Use task-local artifacts for planning outputs:
   - `prd.md` for requirements
@@ -32,6 +33,9 @@ Apply a local planning discipline adapted from Superpowers while following the T
 1. Validate prerequisites:
    - confirm there is an active Trellis task
    - confirm the active task `prd.md` exists and is planning-ready
+   - confirm the active task `prd.md` includes a truthful `## Spec Review Gate` that allows `/trellis-sp:plan` to proceed
+   - confirm the active task `prd.md` uses stable identifiers for the requirements that matter to planning, including `FR-###`, `SC-###`, and any `D-###` rows in `## Critical Details to Preserve`
+   - if parent `memorandum.md` exists, treat deferred, excluded, pending, or blocked items as non-committed context; do not decompose them into child tasks unless they have been explicitly promoted into the reviewed `prd.md`
    - treat the active task as the parent or umbrella task unless the task is already atomic
 2. Announce that you are using a local planning discipline adapted from Superpowers, but Trellis task artifacts remain authoritative.
 3. Research happens after requirements are clear and before implementation:
@@ -51,8 +55,13 @@ Apply a local planning discipline adapted from Superpowers while following the T
    - explicit file-path thinking and likely touched files
    - implementation sequencing
    - verification-first design
+   - requirement traceability from `prd.md` into child-task ownership and proof obligations
    - quick self-review against `prd.md` before handoff
-6. Decompose planning-ready work into atomic Trellis child tasks when the active task is too broad for a single reviewable implementation pass:
+6. Before decomposition is considered complete, create or refresh a parent task `trace.md` that maps every material `D-###`, `FR-###`, and `SC-###` row to a planned owner and proof point.
+   - use `trace.md` as the task-local spine from source requirement detail to planned execution and final proof
+   - for frontend `D-###` rows, record the concrete UI control/component/container named in the source requirement, the screen or module where it appears, and whether the UI concept must be preserved verbatim
+   - if any material requirement or preserved critical detail lacks an owner or planned proof point, planning is not complete
+7. Decompose planning-ready work into atomic Trellis child tasks when the active task is too broad for a single reviewable implementation pass:
    - use normal Trellis child tasks rather than inventing a new storage format
    - create or define child tasks with the existing parent/child task mechanism under `.trellis/tasks/`
    - keep the parent task as `.trellis/.current-task` throughout planning, even while creating or editing child tasks
@@ -65,28 +74,32 @@ Apply a local planning discipline adapted from Superpowers while following the T
    - immediately run `python3 .claude/scripts/trellis-sp-task-meta.py <child-task-dir> --role child --phase execute --clear-resume` for every child task you create or refine in this adapter flow
    - prefer one child task per independent verification unit, file cluster, or review checkpoint
    - avoid splitting trivial work that belongs in the same implementation and verification pass
-7. For each atomic child task, prepare a Trellis-native execution contract:
+8. For each atomic child task, prepare a Trellis-native execution contract:
    - child `prd.md` should narrow scope to one atomic outcome
-   - child `info.md` should summarize approach, sequencing, `Read First`, likely touched files, verification expectations, and blockers
+   - child `prd.md` or child `info.md` should explicitly list the inherited `D-###`, `FR-###`, and `SC-###` rows that this child owns
+   - child `info.md` should summarize approach, sequencing, `Read First`, likely touched files, verification expectations, proof obligations, blockers, and a bounded `Relevant Parent Context Slice`
+   - the `Relevant Parent Context Slice` should include only the parent constraints, parent trace rows, parent anchors, normalized IDs, and memorandum exclusions or blockers that this child actually needs
    - child `implement.jsonl`, `check.jsonl`, and `debug.jsonl` should contain only the Trellis-native preload context needed for that child, not likely touched business code files
    - reuse parent requirements and shared specs where relevant, but keep the child focused and reviewable
-8. Persist planning output into Trellis task artifacts only:
+9. Persist planning output into Trellis task artifacts only:
    - update or create parent `info.md` as the implementation brief / execution contract for the whole workflow
+   - ensure parent `info.md` contains a `## Requirement Coverage Map` and `## Final Verification Strategy` that agree with `trace.md`
    - record the ordered child-task plan in the parent task, including atomic child tasks, sequencing, and review checkpoints
    - refresh parent and child task-local context files as needed:
      - `implement.jsonl`
      - `check.jsonl`
      - `debug.jsonl`
-   - before ending this command, validate that the parent task now satisfies `/trellis-sp:execute` prerequisites for task-local artifacts, especially `prd.md`, `implement.jsonl`, and `check.jsonl`
-9. Keep the plan task-local and execution-oriented:
+   - include parent `trace.md` anywhere task-local preload context needs the requirement spine for planning, implementation, or checking
+   - before ending this command, validate that the parent task now satisfies `/trellis-sp:execute` prerequisites for task-local artifacts, especially `prd.md`, `trace.md`, `implement.jsonl`, and `check.jsonl`
+10. Keep the plan task-local and execution-oriented:
    - parent `info.md` should summarize the overall approach, ordered atomic child tasks, likely touched files, verification strategy, stop conditions, and any shared runtime code-reading guidance
    - child task artifacts should make each atomic step executable by Trellis subagents without relying on external planning files
    - jsonl files should point to the Trellis specs and minimal reusable code-pattern references needed later by `implement`, `check`, and `debug`
-10. Do not introduce assumptions from raw Superpowers that conflict with Trellis:
+11. Do not introduce assumptions from raw Superpowers that conflict with Trellis:
    - no default external plan files
    - no required worktree setup unless the user explicitly asks
    - no automatic commit-oriented plan steps as the task contract
-11. Parent-level finish bridge rules:
+12. Parent-level finish bridge rules:
    - child tasks are execution units, not finish units
    - `/trellis:finish-work` belongs only after `/trellis-sp:execute` restores the parent task and the parent-level final `check` passes cleanly
    - do not describe any child task as ready for `/trellis:finish-work` on its own
@@ -97,6 +110,7 @@ Apply a local planning discipline adapted from Superpowers while following the T
 The intended task-local outputs of this command are:
 
 - active parent task `prd.md`
+- active parent task `trace.md`
 - active parent task `info.md`
 - active parent task `implement.jsonl`
 - active parent task `check.jsonl`
@@ -112,6 +126,38 @@ The intended task-local outputs of this command are:
 
 When `/trellis-sp:plan` decides that staged delivery is needed, prefer artifact shapes like these.
 
+### Parent task `trace.md`
+
+Use the parent task trace file to preserve requirement-to-proof mapping:
+
+```markdown
+# Requirement Trace
+
+## Source Spine
+- D-001 → <preserved detail summary> → <source PRD anchor>
+- FR-001 → <requirement summary> → <source PRD anchor>
+- SC-001 → <success criterion summary> → <source PRD anchor>
+- D-002 → drawer in settlement screen → <source PRD anchor>
+
+## Planning Coverage
+- D-001 → child-1 → <why this child owns it>
+- FR-001 → child-2 → <why this child owns it>
+- SC-001 → parent final check → <why final proof happens there>
+- D-002 → child-3 → preserve exact drawer semantics in settlement screen
+
+## Verification Plan
+- D-001 → child `check`
+- FR-001 → child `check` + parent final `check`
+- SC-001 → parent final `check`
+- D-002 → spec-compliance review + child `check`
+
+## Proof Log
+- D-001 → planned
+- FR-001 → planned
+- SC-001 → planned
+- D-002 → planned
+```
+
 ### Parent task `info.md`
 
 Use the parent task to capture the whole workflow:
@@ -121,6 +167,11 @@ Use the parent task to capture the whole workflow:
 
 ## Goal
 <feature-level outcome>
+
+## Requirement Coverage Map
+- D-001 → <owner>
+- FR-001 → <owner>
+- SC-001 → <owner>
 
 ## Ordered atomic child tasks
 1. <child task 1>
@@ -140,6 +191,10 @@ Use the parent task to capture the whole workflow:
 - [ ] each child task reaches a clean `check`
 - [ ] parent-level final `check` passes
 
+## Final Verification Strategy
+- close every row in `trace.md`
+- prove every inherited `D-###`, `FR-###`, and `SC-###` row through child or parent verification
+
 ## Review checkpoints
 - checkpoint after child 1
 - checkpoint after child 2
@@ -155,6 +210,11 @@ Keep each child task narrow and reviewable:
 
 ## Goal
 <one atomic outcome>
+
+## Inherited Requirement IDs
+- D-001
+- FR-001
+- SC-001
 
 ## Requirements
 - <requirement 1>
@@ -196,6 +256,12 @@ Use the child task to provide runtime code-reading guidance instead of preloadin
 - <verification target 1>
 - <verification target 2>
 
+## Proof Obligations
+- D-001 must be demonstrably covered
+- FR-001 must be demonstrably covered
+- SC-001 evidence must be attached to the correct child or parent check stage
+- named frontend UI controls/components must retain their source requirement semantics
+
 ## Blockers / Assumptions
 - <blocker or assumption>
 ```
@@ -209,6 +275,7 @@ Before `/trellis-sp:plan` hands off to `/trellis-sp:execute`, the parent task mu
 
 At minimum, these should point to:
 - the parent task `prd.md`
+- the parent task `trace.md`
 - the parent task `info.md`
 - relevant `.trellis/spec/...` files
 - shared guides/docs needed across child tasks
@@ -226,13 +293,11 @@ Each child task should usually have:
 
 At minimum, these should point to:
 - the child task `prd.md`
-- the parent task `prd.md`
-- the parent task `info.md`
 - relevant `.trellis/spec/...` files
 - shared guides/docs the child task needs
 - only minimal reusable code-pattern examples when truly needed
 
-Do not use child jsonl files to preload likely touched business code files; put `Read First`, `Likely Touched Files`, sequencing, and verification targets in child `info.md`.
+Do not use child jsonl files to preload likely touched business code files or full parent requirement documents by default; put `Relevant Parent Context Slice`, `Read First`, `Likely Touched Files`, sequencing, and verification targets in child `info.md`.
 
 ## Important bridge rule
 
