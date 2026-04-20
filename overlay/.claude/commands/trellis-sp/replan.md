@@ -55,6 +55,7 @@ Turn post-execution human verification feedback into a Trellis-native delta hand
 4. Branch rules for `requirement changed`:
    - update the affected sections of parent `memorandum.md` first when item status changes, especially for deferred, excluded, pending, blocked, resolved, or promoted items
    - update the affected sections of parent `normalize.md` next so the source-faithful requirement ledger reflects the new requirement state
+   - if the changed requirement affects frontend fields, UI controls, backend APIs, entities, or business rules, refresh the relevant fixed core table before re-formalizing the PRD
    - then update the parent `prd.md`
    - update the parent `trace.md` next so changed or newly introduced `D-###`, `FR-###`, and `SC-###` rows remain historically auditable
    - reuse `/trellis-sp:specify` and `/trellis-sp:clarify` discipline on only the affected sections such as Goal, Requirements, Success Criteria, Out of Scope, or Clarifications
@@ -63,6 +64,7 @@ Turn post-execution human verification feedback into a Trellis-native delta hand
 5. Branch rules for `mixed`:
    - update the changed requirement portion of parent `memorandum.md` first when memo state must change
    - update the changed requirement portion of parent `normalize.md` next
+   - if the changed requirement affects frontend fields, UI controls, backend APIs, entities, or business rules, refresh the relevant fixed core table before re-formalizing the changed requirement portion
    - update the parent `prd.md` for the changed requirement portion next
    - update the parent `trace.md` so both changed requirements and prior proof state remain explicit
    - then record the remaining corrective execution delta in the parent `info.md`

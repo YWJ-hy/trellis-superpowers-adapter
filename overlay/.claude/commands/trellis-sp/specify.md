@@ -46,6 +46,7 @@ This command must prove that material normalized facts were carried forward into
 - out-of-scope notes
 
 Material normalized facts should not survive only implicitly.
+When `normalize.md` contains fixed core columns, the formalized PRD must preserve the material meaning of those columns rather than collapsing them into broad summaries.
 
 ## Target document shape
 
@@ -93,6 +94,8 @@ Use stable identifiers once they are introduced:
 `## Critical Details to Preserve` is required whenever rich upstream input contains nuanced details that are easy to lose during normalization, such as field-level constraints, module-specific interactions, attachment or rich-text placement, defaults, edge-case caveats, or integration assumptions.
 
 For frontend projects, any source requirement that explicitly names UI controls, components, or interaction containers must be preserved as mandatory `D-###` details rather than collapsed into generic summaries. This includes, at minimum, tables, table columns, row actions, input fields, search forms, selectors, date pickers, upload controls, editors, tabs, drawers, modals/dialogs, trees, cards, and similar named UI surfaces.
+When normalized frontend field tables exist, preserve the meaning of core columns such as control type, placement/container, default value, options/source, required/readonly/visibility, and validation/linkage notes in `D-###` details or explicit `FR-###` requirements.
+When normalized backend API, entity, or business rule core tables exist, preserve the meaning of inputs, outputs, defaults, enums, validation rules, errors, side effects, permissions, state flow, and other material contract facts in `FR-###`, `### Key Entities`, or `D-###` entries instead of broad paraphrases.
 
 `## Spec Review Gate` is required before planning handoff. It should truthfully record whether the written PRD is still pending review, approved for `/trellis-sp:plan`, or stale because later clarifications materially changed the documented behavior.
 
@@ -146,6 +149,8 @@ For frontend projects, any source requirement that explicitly names UI controls,
    - preserve nuanced but implementation-relevant details such as field-level constraints, module-specific interactions, placement requirements, defaults, exceptions, and verification caveats
    - for frontend projects, preserve any explicitly named UI control, component, or interaction container as a first-class detail instead of abstracting it into generic phrasing
    - if the source requirement says `drawer`, `tab`, `upload`, `editor`, `table`, or another specific UI concept, keep that exact concept unless the requirement is intentionally changed through review or replan
+   - when `normalize.md` uses fixed core columns, do not collapse those columns into a single high-level sentence; preserve the material meanings separately where they affect behavior, UX, contracts, or validation
+   - if normalized core columns are missing but the raw source clearly contains them, use the raw source as a consistency backstop and mark the gap explicitly rather than silently omitting it
    - keep the entries concise, but do not collapse multiple materially different details into one vague bullet
 10. For `## Assumptions` and `## Out of Scope`:
    - record reasonable defaults when details were not specified
@@ -168,6 +173,8 @@ For frontend projects, any source requirement that explicitly names UI controls,
      - success criteria are measurable and technology-agnostic
      - critical details that would be easy to lose are explicitly preserved
      - explicitly named frontend UI controls/components remain preserved rather than abstracted away
+     - normalized frontend control type, default value, options/source, required state, and interaction-container facts remain visible when they affect implementation
+     - normalized backend inputs, outputs, enums, validations, errors, side effects, permissions, and entity constraints remain visible when they affect implementation
      - edge cases are identified
      - assumptions and out-of-scope are explicit
      - `Spec Review Gate` truthfully reflects whether planning may proceed

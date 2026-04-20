@@ -122,6 +122,8 @@
 
 adapter 现在采用 normalization-first + memorandum + trace 的三段式要求：
 - parent `normalize.md` 先做 source-faithful 的需求精细归一化
+- 对结构化源材料，`normalize.md` 应优先使用 fixed core columns，而不是先压缩成摘要；AI may extend but must not replace core columns
+- 前端字段/表单/组件、后端 API/实体/业务规则都应按各自核心表保留关键事实，并持续携带 `source anchor`
 - parent `memorandum.md` 记录 deferred / excluded / conflicting / pending / blocked 项，避免它们被误写进当前 committed scope
 - parent `prd.md` 仍是 reviewed planning contract
 - parent `trace.md` 负责把保留细节和需求 ID 映射到 owner / proof point
@@ -140,7 +142,7 @@ adapter 现在采用 normalization-first + memorandum + trace 的三段式要求
 - `/trellis-sp:brainstorm` 还应在 question loop 之前创建或刷新 parent `normalize.md`，把 raw source 先解析成 task-local 的 normalized requirement ledger。
 - `/trellis-sp:brainstorm` 还应创建或刷新 parent `memorandum.md`，把原需求与当前代码/接口冲突、用户暂不做/不考虑、待确认、外部阻塞等事项记录下来，避免它们在 formalization 前丢失。
 - `/trellis-sp:specify` 在结束前，应立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <task-dir> --role parent --phase specify`，保证 active parent task 仍能被识别为 adapter-managed task。
-- `/trellis-sp:specify` 还应把容易在抽象化过程中丢失的细节写入 `Critical Details to Preserve`；对于前端任务，源需求里显式点名的 UI 控件/组件（如 table、input、upload、editor、tab、drawer、modal）必须按原语义保留，不能被泛化掉。
+- `/trellis-sp:specify` 还应把容易在抽象化过程中丢失的细节写入 `Critical Details to Preserve`；对于前端任务，源需求里显式点名的 UI 控件/组件（如 table、input、upload、editor、tab、drawer、modal）必须按原语义保留，不能被泛化掉；如果 `normalize.md` 中已经存在 frontend field core table / backend API core table / entity-data-structure core table / business rule core table，则这些核心列的物化含义也必须继续映射到 `FR-###`、`D-###` 或 `Key Entities`，不能只保留高层摘要。
 - `/trellis-sp:plan` 在创建或更新 child tasks 时，`.trellis/.current-task` 仍应保持指向 parent task。
 - `/trellis-sp:plan` 在 planning 进行时，应立即执行 `python3 .claude/scripts/trellis-sp-task-meta.py <parent-task-dir> --role parent --phase plan`；当 parent 准备好进入 execution handoff 时，应保持 `last_phase="plan"` 的真实语义，并额外记录 `resume_source=plan`，而不是提前写成 `execute`。
 - `/trellis-sp:plan` 还应在 parent 缺失 `implement.jsonl` / `check.jsonl` / `debug.jsonl` 时，先执行 `python3 ./.trellis/scripts/task.py init-context <parent-task-dir> <dev_type>` 初始化父任务上下文，再用 `python3 ./.trellis/scripts/task.py add-context ...` 仅补齐 Trellis-native preload context，例如相关 spec、共享 guides/docs，以及确有必要时极少量可复用 code-pattern reference。likely touched 的业务代码文件应写入 `info.md`，不应通过 jsonl 预载。

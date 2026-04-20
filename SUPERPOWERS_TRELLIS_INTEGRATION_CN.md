@@ -218,8 +218,8 @@ flowchart TD
 
 - `trellis:start` 仍然是总入口
 - 原生 `trellis:brainstorm` 仍然保留；adapter lane 只是在选择 `/trellis-sp:brainstorm` 后进入的增强路径，不替代 Trellis 原生 brainstorm
-- `trellis-sp:brainstorm` 增强需求澄清节点，并应确保 parent task 被设为 current task，避免下一步 `specify` 丢失上下文；同时它现在还应在提问前先完成一次 requirement normalization，把 raw source 解析成 parent `normalize.md`，并把 deferred / excluded / conflicting / pending / blocked 项记入 `memorandum.md`
-- `trellis-sp:specify` 增强任务规格整理节点，不再把 raw source 当作主要 formalization 输入，而是以 `normalize.md` 为主来生成 reviewed `prd.md`，同时参考 `memorandum.md` 过滤未承诺项；其中前端显式点名的 UI 控件/组件必须按原语义保留
+- `trellis-sp:brainstorm` 增强需求澄清节点，并应确保 parent task 被设为 current task，避免下一步 `specify` 丢失上下文；同时它现在还应在提问前先完成一次 requirement normalization，把 raw source 解析成 parent `normalize.md`，并把 deferred / excluded / conflicting / pending / blocked 项记入 `memorandum.md`；对结构化源材料应优先采用 fixed core columns，AI may extend but must not replace core columns
+- `trellis-sp:specify` 增强任务规格整理节点，不再把 raw source 当作主要 formalization 输入，而是以 `normalize.md` 为主来生成 reviewed `prd.md`，同时参考 `memorandum.md` 过滤未承诺项；其中前端显式点名的 UI 控件/组件必须按原语义保留，后端接口/实体/规则核心表里的关键合同事实也必须继续物化到 PRD
 - `trellis-sp:clarify` 增强歧义收敛节点，并在需要时刷新书面 `Spec Review Gate`
 - `trellis-sp:plan` 在需要 staged delivery 时把计划拆成原子子任务，并收敛成 parent/child task-local execution contract；planning 期间 current task 仍保持 parent，同时新增 parent `trace.md` 作为需求到 proof 的追踪脊柱
 - `trellis-sp:execute` 按原子子任务增强执行节点，但真实工作仍回到 Trellis-compatible subagent；执行 child 时切到 child，先做 spec-compliance review，再做更广义的 code-quality / `check`，最终校验前再切回 parent

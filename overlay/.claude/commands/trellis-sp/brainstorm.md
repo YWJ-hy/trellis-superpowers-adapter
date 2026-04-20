@@ -33,6 +33,7 @@ Before this workflow tries to formalize a planning-ready PRD, it must first prod
 - keeps named concepts close to their source wording
 - uses broad theme headings while allowing AI-selected subtopics and formats underneath
 - records source-grounded facts and source coverage before formal specification begins
+- uses fixed core columns for structured source material, while allowing AI-selected extension columns or sub-tables when they add source-grounded value
 
 `memorandum.md` is a companion working memo, not a second requirement ledger. It records things that came up during normalization or collaboration but should not automatically enter the current committed PRD, such as:
 - source-vs-code or source-vs-interface conflicts
@@ -71,12 +72,73 @@ Under those broad themes, choose the most natural structure for the source mater
 - ordered lists for flows or lifecycle steps
 - short bullets for constraints or assumptions
 
+When the source material is already structured, preserve that structure with fixed core columns rather than flattening it into prose:
+- frontend field, form, page-region, or component requirements should use a frontend field core table
+- backend API, integration, entity, state, or validation requirements should use the corresponding backend core table
+- AI may extend but must not replace core columns
+- if a core column is not specified in the source, keep the column and write `unspecified`, `TBD`, or another explicit gap marker instead of dropping it
+
 Minimal invariants for `normalize.md`:
 - every material normalized fact gets a stable `N-###` identifier
 - every material normalized fact includes a source anchor
 - explicit source commitments stay explicit rather than being summarized away
 - named frontend UI controls/components and named backend contracts/constraints keep their original semantics
-- `## Source Coverage Index` proves the important source sections were parsed and placed somewhere
+- every structured source row or explicit bullet must map to at least one normalized fact rather than surviving only implicitly
+- fixed core columns must be preserved for structured frontend and backend source material; extension columns are optional, but replacement-by-summary is not allowed
+- `## Source Coverage Index` proves the important source sections and structured rows were parsed and placed somewhere
+
+Frontend field core table minimum columns:
+- `N-ID`
+- `Module / Page / Container`
+- `Field Name`
+- `Field Key`
+- `Control Type`
+- `Placement / Interaction Container`
+- `Data Type / Format`
+- `Default Value`
+- `Options / Source`
+- `Required / Readonly / Visibility`
+- `Validation / Linkage / Interaction Notes`
+- `Source Anchor`
+
+Backend API core table minimum columns:
+- `N-ID`
+- `Capability / Endpoint`
+- `Business Scenario`
+- `Caller / Trigger`
+- `Inputs`
+- `Outputs`
+- `Required / Optional`
+- `Defaults / Enum / Range`
+- `Validation Rules`
+- `Error / Exception Behavior`
+- `Side Effects / State Changes`
+- `Permission / Auth Requirements`
+- `Source Anchor`
+
+Entity / data structure core table minimum columns:
+- `N-ID`
+- `Entity / Object`
+- `Field`
+- `Business Meaning`
+- `Type / Format`
+- `Required / Nullable`
+- `Default Value`
+- `Enum / Dictionary Source`
+- `Uniqueness / Constraints`
+- `Lifecycle / State Flow`
+- `Source Anchor`
+
+Business rule core table minimum columns:
+- `N-ID`
+- `Rule Name / Target`
+- `Applicable Scenario`
+- `Condition`
+- `Action / Outcome`
+- `Priority / Conflict Handling`
+- `Edge Cases`
+- `Failure Handling / User Signal`
+- `Source Anchor`
 
 Minimal invariants for `memorandum.md`:
 - every memo item gets a stable `M-###` identifier
@@ -106,7 +168,8 @@ Minimal invariants for `memorandum.md`:
    - use stable `N-###` identifiers for material normalized facts
    - preserve explicit source commitments rather than abstracting them into high-level summaries
    - let the subtopics and local formats emerge from the source material instead of forcing one schema everywhere
-   - maintain `## Source Coverage Index` so important source sections are not silently dropped
+   - when the source contains structured frontend or backend requirements, use the relevant fixed core table before adding extension columns or supplemental sub-tables
+   - maintain `## Source Coverage Index` so important source sections and structured rows are not silently dropped
 4. Run the memorandum capture substage alongside normalization:
    - record source-vs-code or source-vs-interface conflicts in `memorandum.md`
    - record user-deferred or explicitly excluded-for-now items in `memorandum.md`
